@@ -35,7 +35,11 @@ With the env made, source it.
 Now you can move to installing things...
 
 ## installation
-Clone the repo, activate your virtual env then
+As `Swivel.py` is still hosted on `test.pypi.org` we will need to install that separately for now:
+
+    pip install -i https://test.pypi.org/simple/ swivel
+
+Clone the repo, cd into the rood dir, (activate your virtual env if you have not) then
 
     pip install -r requirements.txt
 
