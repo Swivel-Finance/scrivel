@@ -60,7 +60,7 @@ Also, you'll need to modify some constants located in `/scrivel/constants/__init
 ## run the examples
 The example files can then be run by (assuming you are in the repo root dir)
 
-    python scrivel/examples/<foo>_example.py
+    python scrivel/examples/<foo>_<bar>.py
 
 # todo
 The rest of this readme...
