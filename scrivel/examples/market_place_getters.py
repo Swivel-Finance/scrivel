@@ -55,7 +55,7 @@ swivel_address = market_place.swivel()
 print(yellow('MarketPlace swivel address: ') + blue(swivel_address))
 
 market = market_place.markets(DAI_UNDERLYING, DAI_MATURITY)
-print(yellow('DAI Market maturing on: ') + blue(str(DAI_MATURITY)) + cyan(' {}'.format(market)))
+print(yellow('DAI Market maturing on: ') + blue(str(DAI_MATURITY)) + cyan(str(market)))
 
 c_token_address = market_place.c_token_address(DAI_UNDERLYING, DAI_MATURITY)
 print(yellow('DAI Market Compound token address: ') + blue(c_token_address))
