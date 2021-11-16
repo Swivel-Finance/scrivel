@@ -15,7 +15,7 @@ from scrivel.helpers.http import (
     last_trade,
     orders,
     order,
-    market_order,
+    limit_order,
 )
 
 from scrivel.constants import(
