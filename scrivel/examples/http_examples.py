@@ -85,7 +85,7 @@ print(white('New Order signature: ') + blue(sig))
 # we leave this commented out to prevent spamming the orderbook
 
 # NOTE: use the stringify helper to match what the api expects
-# status, reason = market_order(stringify(my_order), sig) 
-# print(white('API Market Order Response: ') + blue(str(status)) + white(', ') + blue(reason))
+# status, reason = limit_order(stringify(my_order), sig) 
+# print(white('API Limit Order Response: ') + blue(str(status)) + white(', ') + blue(reason))
 
 stop()

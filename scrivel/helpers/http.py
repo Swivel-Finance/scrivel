@@ -67,7 +67,7 @@ def order(k):
     resp= requests.get(route)
     return resp.json()
 
-def market_order(o, s):
+def limit_order(o, s):
     """Given an order and a signature, place it with the swivel api
 
     Returns:
