@@ -1,8 +1,6 @@
 import os, sys
 from os.path import dirname, join, abspath
 sys.path.insert(0, abspath(join(dirname(__file__), '..', '..')))
-
-from web3 import Web3
 from swivel.vendors import W3
 from time import sleep
 from sys import exit
@@ -10,19 +8,13 @@ import time
 import datetime
 import math
 
+from web3 import Web3
+
 from scrivel.helpers.orders import new_order, stringify, parse
 
 from scrivel.helpers.http import (
-    markets,
     last_trade,
-    orders,
-    order,
     limit_order,
-)
-
-from scrivel.constants import(
-    HTTP_PROVIDER,
-    SWIVEL_ADDRESS,
 )
 
 from scrivel.helpers.colors import(
@@ -30,38 +22,46 @@ from scrivel.helpers.colors import(
     white,
 )
 
-def truncate(number, digits) -> float:
-    stepper = 10.0 ** digits
-    return math.trunc(stepper * number) / stepper
-
 def fetchPrice(underlying, maturity) -> float:
     trade = last_trade(underlying, maturity)
     return trade['price']
 
 def simplestMarketMake(underlying, maturity, range, amount, expiryLength):
 
-    price = fetchPrice(underlying, maturity)
+    price = fetchPrice(underlying, math.trunc(maturity))
+    price = float(price)
     upperBound = price + (price*(range/100))
     lowerBound = price - (price*(range/100))
 
-    safeAmount = amount * .95
+    safeAmount = amount * .95 * 10**int(decimals)
     
     splitAmount = safeAmount / 2
 
-    upperPrincipal = truncate(splitAmount,4)
-    upperPremium = truncate((splitAmount*upperBound),4)
+    upperPrincipal = splitAmount
+    upperPremium = splitAmount*upperBound
 
-    lowerPrincipal = truncate(splitAmount/lowerBound),4)
-    lowerPremium = truncate(splitAmount,4)
+    lowerPrincipal = splitAmount/lowerBound
+    lowerPremium = splitAmount
 
-    expiry = datetime.datetime.now() + expiryLength 
+    expiry = float(time.time()) + expiryLength
 
-    upperOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=maturity, vault=True, exit=True, principal=upperPrincipal, premium=upperPremium, expiry=expiry)
+    upperOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=True, principal=int(upperPrincipal), premium=int(upperPremium), expiry=int(expiry))
 
-    lowerOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=maturity, vault=True, exit=False, principal=lowerPrincipal, premium=lowerPremium, expiry=expiry)
+    lowerOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(lowerPrincipal), premium=int(lowerPremium), expiry=int(expiry))
+    
+    print(blue("\nUpper Order: "))
+    print(stringify(upperOrder))
 
-    upperOrderId = limit_order(upperOrder)
-    lowerOrderId = limit_order(lowerOrder)
+    provider = Web3.HTTPProvider("https://red-icy-surf.rinkeby.quiknode.pro/0cbdd13f2a541b199f1fb70ecc0481d9c452ae01/")
+
+    vendor = W3(provider, PUBLIC_KEY)
+
+    upperOrderSignature = vendor.sign_order(upperOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
+
+    lowerOrderSignature = vendor.sign_order(lowerOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
+
+    upperOrderId = limit_order(upperOrder, upperOrderSignature)
+    lowerOrderId = limit_order(lowerOrder, lowerOrderSignature)
 
     print(f'{blue}Upper Order: {blue}{stringify(upperOrder)}')
     print(f'{white}Lower Order: {white}{stringify(lowerOrder)}')
@@ -69,17 +69,16 @@ def simplestMarketMake(underlying, maturity, range, amount, expiryLength):
     print(f'{blue}Upper Order ID: {blue}{upperOrderId}')
     print(f'{white}Lower Order ID: {white}{lowerOrderId}')
 
-underlying = input('what is the underlying token: ')
-maturity = input('what is the market\'s maturity: ')
-amount = input('how many zcTokens and nTokens do you want to use')
-orderRange = input('how far from market price do you want to quote (in %): ')
-expiryLength = input('how often should orders refresh: ')
-PRIVATE_KEY = input('what is your private key') #or env
-PROVIDER_KEY = input('what is your Infura or other provider key: ')
-PUBLIC_KEY = input('what is your public key')
+underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
+maturity = float(1662089767)
+decimals = float(18)
+amount = float(1000)
+orderRange = float(5)
+expiryLength = float(10000)
+PUBLIC_KEY = "0x7111F9Aeb2C1b9344EC274780dc9e3806bdc60Ef"
 
-loop = true
-while loop = true:
+loop = True
+while loop == True:
 
     simplestMarketMake(underlying, maturity, orderRange, amount, expiryLength)
     time.sleep(expiryLength)

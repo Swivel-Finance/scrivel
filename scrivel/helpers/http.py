@@ -33,6 +33,7 @@ def last_trade(u, m):
 
     params = new_params(underlying=u, maturity=m, depth=1)
     resp = requests.get(swivel_api_route.format('fills'), params=params)
+    print(resp.json())
     return resp.json()[0]
 
 def orders(u, m, a, status=None):
