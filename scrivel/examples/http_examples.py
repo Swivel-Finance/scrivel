@@ -68,7 +68,7 @@ print(white('API Order signature: ') + blue(api_order_signature))
 # my_insolvent_orders = orders(DAI_UNDERLYING, DAI_MATURITY, PUB_KEY, status='insolvent')
 # print(white('Insolvent Orders by maker: ') + blue(str(my_insolvent_orders)))
 
-# placing a market order
+# placing a limit order
 my_order = new_order(PUB_KEY, underlying=DAI_UNDERLYING, maturity=DAI_MATURITY, vault=False, exit=True,
     principal=12000000000000000000, premium=1100000000000000000, expiry=1636563532)
 
