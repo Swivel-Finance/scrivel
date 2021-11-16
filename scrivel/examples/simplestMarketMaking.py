@@ -21,19 +21,15 @@ from scrivel.helpers.http import (
 )
 
 from scrivel.constants import(
-    PUB_KEY,
-    DAI_UNDERLYING,
-    DAI_MATURITY,
     HTTP_PROVIDER,
     SWIVEL_ADDRESS,
 )
 
 from scrivel.helpers.colors import(
-    start,
-    stop,
     blue,
     white,
 )
+
 def truncate(number, digits) -> float:
     stepper = 10.0 ** digits
     return math.trunc(stepper * number) / stepper
@@ -67,11 +63,11 @@ def simplestMarketMake(underlying, maturity, range, amount, expiryLength):
     upperOrderId = limit_order(upperOrder)
     lowerOrderId = limit_order(lowerOrder)
 
-    print(f'{blue}Upper Order: {white}{stringify(upperOrder)}')
-    print(f'{blue}Lower Order: {white}{stringify(lowerOrder)}')
+    print(f'{blue}Upper Order: {blue}{stringify(upperOrder)}')
+    print(f'{white}Lower Order: {white}{stringify(lowerOrder)}')
 
-    print(f'{blue}Upper Order ID: {white}{upperOrderId}')
-    print(f'{blue}Lower Order ID: {white}{lowerOrderId}')
+    print(f'{blue}Upper Order ID: {blue}{upperOrderId}')
+    print(f'{white}Lower Order ID: {white}{lowerOrderId}')
 
 underlying = input('what is the underlying token: ')
 maturity = input('what is the market\'s maturity: ')
