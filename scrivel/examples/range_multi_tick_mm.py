@@ -42,13 +42,9 @@ def rangeMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLe
     marketRate = price / timeModifier * 100
 
     upperDiff = upperRate - marketRate
-    print('upper diff')
-    print(upperDiff)
     lowerDiff = marketRate - lowerRate
-    upperTickDiff = upperDiff / numTicks
-    print('upper tick diff')
-    print(upperTickDiff)
 
+    upperTickDiff = upperDiff / numTicks
     lowerTickDiff = lowerDiff / numTicks
 
     expiry = float(time.time()) + expiryLength
@@ -75,16 +71,12 @@ def rangeMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLe
 
         orderResponse = limit_order(stringify(tickOrder), signature)
 
-        print(orderResponse)
-
         orderKey = tickOrder['key'].hex()
 
         apiOrderPrice = order(orderKey)['meta']['price']
 
-        print(apiOrderPrice)
-
-        print('Upper Order #'+str(i))
-        print(f'Order Price: {apiOrderPrice}')
+        print(blue('Upper Order #'+str(i)))
+        print(white(f'Order Price: {apiOrderPrice}'))
         print(f'Order Key: {orderKey}')
         print(' ')
 
@@ -110,8 +102,8 @@ def rangeMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLe
 
         apiOrderPrice = order(orderKey)['meta']['price']
 
-        print('Lower Order #'+str(i))
-        print(f'Lower Price: {apiOrderPrice}')
+        print(blue('Lower Order #'+str(i)))
+        print(white(f'Lower Price: {apiOrderPrice}'))
         print(f'Lower Key: {orderKey}')
         print(' ')
 
