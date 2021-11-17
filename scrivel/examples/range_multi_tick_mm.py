@@ -34,15 +34,21 @@ def rangeMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLe
     price = fetchPrice(underlying, math.trunc(maturity))
     price = float(price)
 
+    safeAmount = amount * .95 * 10**int(decimals)
+
     timeDiff = maturity - time.time()
     timeModifier = (timeDiff / 31536000)
 
     marketRate = price / timeModifier * 100
 
     upperDiff = upperRate - marketRate
+    print('upper diff')
+    print(upperDiff)
     lowerDiff = marketRate - lowerRate
-
     upperTickDiff = upperDiff / numTicks
+    print('upper tick diff')
+    print(upperTickDiff)
+
     lowerTickDiff = lowerDiff / numTicks
 
     expiry = float(time.time()) + expiryLength
@@ -54,66 +60,69 @@ def rangeMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLe
     print(datetime.datetime.utcfromtimestamp(int(time.time())).strftime('%Y-%m-%d %H:%M:%S'))
 
     for i in range(numTicks):
-        price = price + (upperTickDiff * (i+1))
+        tickRate = marketRate + (upperTickDiff * (i+1))
+        tickPrice = tickRate * timeModifier / 100
 
         exponent = numTicks-i
 
-        amount = amount / 2 ** exponent
+        tickAmount = safeAmount / (2 ** exponent)
 
-        principal = amount
-        premium = amount*price
+        principal = tickAmount
+        premium = principal*tickPrice
 
-        order = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=True, principal=int(principal), premium=int(premium), expiry=int(expiry))
+        tickOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=True, principal=int(principal), premium=int(premium), expiry=int(expiry))
+        signature = vendor.sign_order(tickOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
 
-        signature = vendor.sign_order(order, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
+        orderResponse = limit_order(stringify(tickOrder), signature)
 
-        orderResponse = limit_order(stringify(order), signature)
+        print(orderResponse)
 
-        orderKey = order['key'].hex()
+        orderKey = tickOrder['key'].hex()
 
         apiOrderPrice = order(orderKey)['meta']['price']
 
-        print('Upper Order #'+i)
+        print(apiOrderPrice)
+
+        print('Upper Order #'+str(i))
         print(f'Order Price: {apiOrderPrice}')
         print(f'Order Key: {orderKey}')
         print(' ')
 
 
     for i in range(numTicks):
-        price = price - (lowerTickDiff * (i+1))
+        tickRate = marketRate - (lowerTickDiff * (i+1))
+        tickPrice = tickRate * timeModifier / 100
 
         exponent = numTicks-i
 
-        amount = amount / 2 ** exponent
+        amount = safeAmount / (2 ** exponent)
 
-        premium = amount
-        principal = lowerPremium/lowerBound
+        premium = tickAmount
+        principal = premium/tickPrice
 
-        order = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(principal), premium=int(premium), expiry=int(expiry))
+        tickOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(principal), premium=int(premium), expiry=int(expiry))
 
-        signature = vendor.sign_order(order, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
+        signature = vendor.sign_order(tickOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
 
-        orderResponse = limit_order(stringify(order), signature)
+        orderResponse = limit_order(stringify(tickOrder), signature)
 
-        orderKey = order['key'].hex()
+        orderKey = tickOrder['key'].hex()
 
         apiOrderPrice = order(orderKey)['meta']['price']
 
-        print('Upper Order #'+i)
-        print(f'Order Price: {apiOrderPrice}')
-        print(f'Order Key: {orderKey}')
+        print('Lower Order #'+str(i))
+        print(f'Lower Price: {apiOrderPrice}')
+        print(f'Lower Key: {orderKey}')
         print(' ')
 
-underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
-maturity = float(1662089767)
-decimals = float(18)
-amount = float(1000)
-expiryLength = float(600)
-upperRate = float(17.5)
-lowerRate = float(30)
-numTicks = int(3)
-PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
-
+underlying = input('What is the underlying token address: ') #"0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
+maturity = float(input('What is the market maturity: ')) #float(1662089767)
+decimals = float(input('How many decimals does the token have: ')) #float(18)
+amount = float(input('How many nTokens do you want to use as inventory (must have equivalent underlying inventory): ')) #float(1000)
+upperRate = float(input('What is the max rate you want to predict: ')) #float(5)
+lowerRate = float(input('What is the minimum rate you want to predict: '))
+expiryLength = float(input('How often do you want to update your orders: ')) #float(600)
+PUBLIC_KEY = input('What is your public key: ') #"0x7111F9Aeb2C1b9344EC274780dc9e3806bdc60Ef"
 start()
 
 loop = True
