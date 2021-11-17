@@ -29,7 +29,7 @@ def fetchPrice(underlying, maturity) -> float:
     return trade['price']
 
 
-def rangeMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength):
+def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength):
 
     price = fetchPrice(underlying, math.trunc(maturity))
     price = float(price)
@@ -120,7 +120,7 @@ start()
 loop = True
 while loop == True:
 
-    rangeMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
+    rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     time.sleep(expiryLength)
 
 stop()
