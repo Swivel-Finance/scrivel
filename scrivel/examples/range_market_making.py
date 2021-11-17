@@ -67,10 +67,10 @@ def rangeMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLe
     print(datetime.datetime.utcfromtimestamp(expiry).strftime('%Y-%m-%d %H:%M:%S'))
     print(' ')
     print(f'Upper Order Price: {upperApiOrderPrice}')
-    print(f'Upper Order Key: {lowerOrderKey}')
+    print(f'Upper Order Key: {upperOrderKey}')
     print(' ')
     print(f'Lower Order Price: {lowerApiOrderPrice}')
-    print(f'Lower Order Key: {upperOrderKey}')
+    print(f'Lower Order Key: {lowerOrderKey}')
 
 underlying = input('What is the underlying token address: ') #"0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
 maturity = float(input('What is the market maturity: ')) #float(1662089767)
