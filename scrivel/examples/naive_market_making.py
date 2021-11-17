@@ -82,7 +82,7 @@ def simplestMarketMake(underlying, maturity, range, amount, expiryLength):
     print(f'Lower Order Key: {upperOrderKey}')
     
 
-underlying = input('What is the underlying token address') #"0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
+underlying = input('What is the underlying token address: ') #"0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
 maturity = float(input('What is the market maturity: ')) #float(1662089767)
 decimals = float(input('How many decimals does the token have: ')) #float(18)
 amount = float(input('How many nTokens do you want to use as inventory (must have equivalent underlying inventory): ')) #float(1000)
