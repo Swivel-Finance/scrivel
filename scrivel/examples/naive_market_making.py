@@ -42,9 +42,9 @@ def simplestMarketMake(underlying, maturity, range, amount, expiryLength):
     upperPrincipal = splitAmount
     upperPremium = splitAmount*upperBound
 
-    lowerPrincipal = splitAmount/lowerBound
-    lowerPremium = splitAmount
-
+    lowerPremium = upperPremium
+    lowerPrincipal = lowerPremium/lowerBound
+    
     expiry = float(time.time()) + expiryLength
 
     upperOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=True, principal=int(upperPrincipal), premium=int(upperPremium), expiry=int(expiry))
@@ -82,13 +82,13 @@ def simplestMarketMake(underlying, maturity, range, amount, expiryLength):
     print(f'Lower Order Key: {upperOrderKey}')
     
 
-underlying = input('What is the underlying token address') #"0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
-maturity = float(input('What is the market maturity: ')) #float(1662089767)
-decimals = float(input('How many decimals does the token have: ')) #float(18)
-amount = float(input('How many tokens do you want to trade: ')) #float(1000)
-orderRange = float(input('How far from market price do you want to quote: ')) #float(5)
-expiryLength = float(input('How often do you want to update your orders: ')) #float(600)
-PUBLIC_KEY = input('What is your public key:') #"0x7111F9Aeb2C1b9344EC274780dc9e3806bdc60Ef"
+underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
+maturity = float(1662089767)
+decimals = float(18)
+amount = float(1000)
+orderRange = float(5)
+expiryLength = float(600)
+PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
 start()
 loop = True
 while loop == True:
