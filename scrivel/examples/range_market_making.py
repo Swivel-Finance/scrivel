@@ -86,7 +86,7 @@ start()
 loop = True
 while loop == True:
 
-    simplestMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
+    rangeMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     time.sleep(expiryLength)
 
 stop()
