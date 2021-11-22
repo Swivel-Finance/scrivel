@@ -52,6 +52,11 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     lowerDiff = marketRate - lowerRate
     print('Upper Diff:')
     print(upperDiff)
+    print('Lower Diff:')
+    print(lowerDiff)
+    if lowerDiff < 0 or upperDiff < 0:
+        print('Error: Market rates are too high or low for range')
+        exit(1)
     # determine how spread each tick is
     upperTickDiff = upperDiff / numTicks
     lowerTickDiff = lowerDiff / numTicks
@@ -247,8 +252,8 @@ underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
 maturity = float(1662089767)
 decimals = float(18)
 amount = float(1000)
-upperRate = float(40)
-lowerRate = float(20)
+upperRate = float(18)
+lowerRate = float(3)
 numTicks = int(3)
 expiryLength = float(600)
 PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
