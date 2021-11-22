@@ -154,7 +154,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 timeModifier = expiryLength / timeDiff
                 newPrice = price - (price * timeModifier)
 
-                principalDiff = orders[i]['meta']['principalAvailable'] - returnedOrder['meta']['principalAvailable']
+                principalDiff = float(orders[i]['meta']['principalAvailable']) - float(returnedOrder['meta']['principalAvailable'])
                 premiumDiff = principalDiff * newPrice
 
                 orderType = orders[i]['meta']['exit']
@@ -187,18 +187,23 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     pass
                 else:
                     # replace whatever volume has not been filled
-                    replacedPrincipal = returnedOrder['meta']['principalAvailable']
+                    replacedPrincipal = float(returnedOrder['meta']['principalAvailable'])
                     recplacedPremium = replacedPrincipal * newPrice
                     
                     replacedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(replacedPrincipal), premium=int(recplacedPremium), expiry=int(newExpiry))
                     signature = vendor.sign_order(reversedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
                     signature = "0x"+signature
                     orderResponse = limit_order(stringify(reversedOrder), signature)
+                    apiOrder = order(replacedOrder['key'].hex())
                     
                     # print order info
                     print(cyan('Replaced Order:'))
                     print(f'Order Key: {replacedOrder["key"].hex()}')
                     print(white(f'Order Price: {newPrice}'))
+                
+                # append the replaced order to the list
+                newOrders.append(apiOrder)
+                newOrderKeys.append(replacedOrder['key'].hex())
                 
             # if the order has not been filled, adjust for time difference and place a new order at the same rate and principal
             else:
