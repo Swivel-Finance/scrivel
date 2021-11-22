@@ -138,6 +138,7 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
 def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength):
     print('Current Time:')
     print(datetime.datetime.utcfromtimestamp(int(time.time())).strftime('%Y-%m-%d %H:%M:%S'))
+    print(' ')
     newOrders = []
     newOrderKeys = []
     if initializor == 0:
@@ -186,6 +187,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 print(red('New (reversed) Order:'))
                 print(f'Order Key: {reversedOrder["key"].hex()}')
                 print(white(f'Order Price: {newPrice}'))
+                print(' ')
 
                 # if the order is completely filled (or 95% filled), ignore it, otherwise replace the order
                 if returnedOrder['meta']['principalAvailable'] - orders[i]['meta']['principalAvailable'] <= (orders[i]['order']['principal'] * .05):
@@ -205,6 +207,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     print(cyan('Replaced Order:'))
                     print(f'Order Key: {replacedOrder["key"].hex()}')
                     print(white(f'Order Price: {newPrice}'))
+                    print(' ')
                 
                 # append the replaced order to the list
                 newOrders.append(apiOrder)
@@ -241,6 +244,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 print(green('New (duplicated) Order:'))
                 print(f'Order Key: {duplicateOrder["key"].hex()}')
                 print(white(f'Order Price: {newPrice}'))
+                print(' ')
 
         # store new order lists
         return (newOrders, newOrderKeys)
@@ -248,12 +252,12 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 
 
         
-underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
-maturity = float(1662089767)
+underlying = "0x4DBCdF9B62e891a7cec5A2568C3F4FAF9E8Abe2b"
+maturity = float(1638334799)
 decimals = float(18)
 amount = float(1000)
-upperRate = float(18)
-lowerRate = float(3)
+upperRate = float(650)
+lowerRate = float(200)
 numTicks = int(3)
 expiryLength = float(600)
 PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
