@@ -41,11 +41,14 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     timeDiff = maturity - time.time()
     timeModifier = (timeDiff / 31536000)
     marketRate = price / timeModifier * 100
+    print('Market Rate:')
+    print(marketRate)
 
     # determine upper / lower ranges
     upperDiff = upperRate - marketRate
     lowerDiff = marketRate - lowerRate
-
+    print('Upper Diff:')
+    print(upperDiff)
     # determine how spread each tick is
     upperTickDiff = upperDiff / numTicks
     lowerTickDiff = lowerDiff / numTicks
@@ -72,6 +75,9 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
 
         # create, sign, and place the order
         tickOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=True, principal=int(principal), premium=int(premium), expiry=int(expiry))
+        tickOrderPrice = premium/principal
+
+
         signature = vendor.sign_order(tickOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
         orderResponse = limit_order(stringify(tickOrder), signature)
         # store order and key
@@ -80,11 +86,10 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         orderKeys.append(orderKey)
         orders.append(apiOrder)
 
-        apiOrderPrice = apiOrder['meta']['price']
-
-        print(blue('Upper Order #'+str(i)))
-        print(white(f'Order Price: {apiOrderPrice}'))
+        print(blue('Upper Order #'+str(i+1)))
+        print(white(f'Order Price: {tickOrderPrice}'))
         print(f'Order Key: {orderKey}')
+        print(f'Order Response: {orderResponse}')
         print(' ')
 
 
@@ -100,7 +105,7 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         principal = premium/tickPrice
 
         tickOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(principal), premium=int(premium), expiry=int(expiry))
-
+        tickOrderPrice = premium/principal
         signature = vendor.sign_order(tickOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
 
         orderResponse = limit_order(stringify(tickOrder), signature)
@@ -110,11 +115,11 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
 
         apiOrder = order(orderKey)
         orders.append(apiOrder)
-        apiOrderPrice = apiOrder['meta']['price']
 
-        print(blue('Lower Order #'+str(i)))
-        print(white(f'Lower Price: {apiOrderPrice}'))
+        print(blue('Lower Order #'+str(i+1)))
+        print(white(f'Order Price: {tickOrderPrice}'))
         print(f'Lower Key: {orderKey}')
+        print(f'Order Response: {orderResponse}')
         print(' ')
 
 
@@ -217,15 +222,15 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
 
         
-underlying = input('What is the underlying token address: ') #"0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
-maturity = float(input('What is the market maturity: ')) #float(1662089767)
-decimals = float(input('How many decimals does the token have: ')) #float(18)
-amount = float(input('How many nTokens do you want to use as inventory (must have equivalent underlying inventory): ')) #float(1000)
-upperRate = float(input('What is the max rate you want to predict: ')) #float(20)
-lowerRate = float(input('What is the minimum rate you want to predict: ')) #float(5)
-numTicks = int(input('How many ticks do you want to make: ')) #int(5)
-expiryLength = float(input('How often do you want to update your orders: ')) #float(600)
-PUBLIC_KEY = input('What is your public key: ') #"0x7111F9Aeb2C1b9344EC274780dc9e3806bdc60Ef"
+underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
+maturity = float(1662089767)
+decimals = float(18)
+amount = float(1000)
+upperRate = float(40)
+lowerRate = float(20)
+numTicks = int(3)
+expiryLength = float(600)
+PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
 start()
 
 provider = Web3.HTTPProvider("https://red-icy-surf.rinkeby.quiknode.pro/0cbdd13f2a541b199f1fb70ecc0481d9c452ae01/")
@@ -240,8 +245,6 @@ loop = True
 while loop == True:
     rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     initializor += 1
-    print('Orders:')
-    print(orders)
     time.sleep(expiryLength)
 
 stop()
