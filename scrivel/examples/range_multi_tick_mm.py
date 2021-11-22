@@ -113,6 +113,7 @@ decimals = float(input('How many decimals does the token have: ')) #float(18)
 amount = float(input('How many nTokens do you want to use as inventory (must have equivalent underlying inventory): ')) #float(1000)
 upperRate = float(input('What is the max rate you want to predict: ')) #float(20)
 lowerRate = float(input('What is the minimum rate you want to predict: ')) #float(5)
+numTicks = int(input('How many ticks do you want to make: ')) #int(5)
 expiryLength = float(input('How often do you want to update your orders: ')) #float(600)
 PUBLIC_KEY = input('What is your public key: ') #"0x7111F9Aeb2C1b9344EC274780dc9e3806bdc60Ef"
 start()

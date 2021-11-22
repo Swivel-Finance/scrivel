@@ -210,18 +210,15 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
 
         
-                
-            
-
-underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
-maturity = float(1662089767)
-decimals = float(18)
-amount = float(1000)
-upperRate = float(20)
-lowerRate = float(5)
-expiryLength = float(600)
-numTicks = int(3)
-PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
+underlying = input('What is the underlying token address: ') #"0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
+maturity = float(input('What is the market maturity: ')) #float(1662089767)
+decimals = float(input('How many decimals does the token have: ')) #float(18)
+amount = float(input('How many nTokens do you want to use as inventory (must have equivalent underlying inventory): ')) #float(1000)
+upperRate = float(input('What is the max rate you want to predict: ')) #float(20)
+lowerRate = float(input('What is the minimum rate you want to predict: ')) #float(5)
+numTicks = int(input('How many ticks do you want to make: ')) #int(5)
+expiryLength = float(input('How often do you want to update your orders: ')) #float(600)
+PUBLIC_KEY = input('What is your public key: ') #"0x7111F9Aeb2C1b9344EC274780dc9e3806bdc60Ef"
 start()
 
 provider = Web3.HTTPProvider("https://red-icy-surf.rinkeby.quiknode.pro/0cbdd13f2a541b199f1fb70ecc0481d9c452ae01/")
