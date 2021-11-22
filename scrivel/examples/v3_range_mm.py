@@ -141,7 +141,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
                 # adjust for time difference
                 timeDiff = maturity - time.time()
-                price = orders[i]['meta']['price']
+                price = float(orders[i]['meta']['price'])
                 timeModifier = expiryLength / timeDiff
                 newPrice = price - (price * timeModifier)
 
@@ -192,7 +192,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 # adjust for time difference
                 timeDiff = maturity - time.time()
                 timeModifier = expiryLength / timeDiff
-                price = orders[i]['meta']['price']
+                price = float(orders[i]['meta']['price'])
                 print(f'Price: {price}')
                 newPrice = price - (price * timeModifier)
 
