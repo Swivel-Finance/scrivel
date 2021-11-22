@@ -185,7 +185,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 # print order info
                 print(red('New (reversed) Order:'))
                 print(f'Order Key: {reversedOrder["key"].hex()}')
-                print(white(f'Order Price: {reversedOrder["meta"]["price"]}'))
+                print(white(f'Order Price: {newPrice}'))
 
                 # if the order is completely filled (or 95% filled), ignore it, otherwise replace the order
                 if returnedOrder['meta']['principalAvailable'] - orders[i]['meta']['principalAvailable'] <= (orders[i]['order']['principal'] * .05):
