@@ -22,6 +22,9 @@ from scrivel.helpers.colors import(
     stop,
     blue,
     white,
+    green,
+    red,
+    cyan,
 )
 
 def fetchPrice(underlying, maturity) -> float:
@@ -77,8 +80,9 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         tickOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=True, principal=int(principal), premium=int(premium), expiry=int(expiry))
         tickOrderPrice = premium/principal
 
-
         signature = vendor.sign_order(tickOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
+        signature = "0x"+signature
+
         orderResponse = limit_order(stringify(tickOrder), signature)
         # store order and key
         orderKey = tickOrder['key'].hex()
@@ -106,7 +110,9 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
 
         tickOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(principal), premium=int(premium), expiry=int(expiry))
         tickOrderPrice = premium/principal
+
         signature = vendor.sign_order(tickOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
+        signature = "0x"+signature
 
         orderResponse = limit_order(stringify(tickOrder), signature)
 
@@ -126,6 +132,8 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
 def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength):
     print('Current Time:')
     print(datetime.datetime.utcfromtimestamp(int(time.time())).strftime('%Y-%m-%d %H:%M:%S'))
+    newOrders = []
+    newOrderKeys = []
     if initializor == 0:
         initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     else:
@@ -137,6 +145,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
             newExpiry = float(time.time()) + expiryLength
 
             # determine if the order has been filled
+        
             if returnedOrder['meta']['principalAvailable'] != orders[i]['meta']['principalAvailable']:
 
                 # adjust for time difference
@@ -154,39 +163,43 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 if orderType == True:
                     reversedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(principalDiff), premium=int(premiumDiff), expiry=int(newExpiry))
                     signature = vendor.sign_order(reversedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")     
+                    signature = "0x"+signature
                     orderResponse = limit_order(stringify(reversedOrder), signature)
+                    apiOrder = order(reversedOrder['key'].hex())
                 else:
                     reversedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=True, principal=int(principalDiff), premium=int(premiumDiff), expiry=int(newExpiry))
                     signature = vendor.sign_order(reversedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")     
+                    signature = "0x"+signature
                     orderResponse = limit_order(stringify(reversedOrder), signature)
-
-                # if the order is completely filled (or 95% filled), remove it from the list
-                if returnedOrder['meta']['principalAvailable'] - orders[i]['meta']['principalAvailable'] <= (orders[i]['order']['principal'] * .05):
-                    orderKeys.pop(i)
-                    orders.pop(i)
+                    apiOrder = order(reversedOrder['key'].hex())
 
                 # append the reversed order to the list
-                orders.append(reversedOrder)
-                orderKeys.append(reversedOrder['key'].hex())
+                newOrders.append(apiOrder)
+                newOrderKeys.append(reversedOrder['key'].hex())
 
                 # print order info
-                print(blue('New (reversed) Order:'))
+                print(red('New (reversed) Order:'))
                 print(f'Order Key: {reversedOrder["key"].hex()}')
                 print(white(f'Order Price: {reversedOrder["meta"]["price"]}'))
 
-                # replace whatever volume has not been filled
-                replacedPrincipal = returnedOrder['meta']['principalAvailable']
-                recplacedPremium = replacedPrincipal * newPrice
-
-                replacedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(replacedPrincipal), premium=int(recplacedPremium), expiry=int(newExpiry))
-                signature = vendor.sign_order(reversedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")     
-                orderResponse = limit_order(stringify(reversedOrder), signature)
+                # if the order is completely filled (or 95% filled), ignore it, otherwise replace the order
+                if returnedOrder['meta']['principalAvailable'] - orders[i]['meta']['principalAvailable'] <= (orders[i]['order']['principal'] * .05):
+                    pass
+                else:
+                    # replace whatever volume has not been filled
+                    replacedPrincipal = returnedOrder['meta']['principalAvailable']
+                    recplacedPremium = replacedPrincipal * newPrice
+                    
+                    replacedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(replacedPrincipal), premium=int(recplacedPremium), expiry=int(newExpiry))
+                    signature = vendor.sign_order(reversedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
+                    signature = "0x"+signature
+                    orderResponse = limit_order(stringify(reversedOrder), signature)
+                    
+                    # print order info
+                    print(cyan('Replaced Order:'))
+                    print(f'Order Key: {replacedOrder["key"].hex()}')
+                    print(white(f'Order Price: {newPrice}'))
                 
-                # print order info
-                print(blue('Replaced Order:'))
-                print(f'Order Key: {replacedOrder["key"].hex()}')
-                print(white(f'Order Price: {newPrice}'))
-
             # if the order has not been filled, adjust for time difference and place a new order at the same rate and principal
             else:
                 # adjust for time difference
@@ -197,7 +210,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 newPrice = price - (price * timeModifier)
 
                 # determine the new premium amount
-                duplicatePrincipal = orders[i]['order']['principal']
+                duplicatePrincipal = float(orders[i]['order']['principal'])
                 duplicatePremium = duplicatePrincipal * newPrice
 
                 orderExit = orders[i]['order']['exit']
@@ -205,21 +218,24 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
                 duplicateOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=orderVault, exit=orderExit, principal=int(duplicatePrincipal), premium=int(duplicatePremium), expiry=int(newExpiry))
                 signature = vendor.sign_order(duplicateOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
+                signature = "0x"+signature
                 orderResponse = limit_order(stringify(duplicateOrder), signature)
 
-                # remove the order from the list
-                orderKeys.pop(i)
-                orders.pop(i)
+                apiOrder = order(duplicateOrder['key'].hex())
 
                 # append the duplicate order to the list
-                orders.append(duplicateOrder)
-                orderKeys.append(duplicateOrder['key'].hex())
+                newOrders.append(apiOrder)
+                newOrderKeys.append(duplicateOrder['key'].hex())
 
                 # print order info
-                print(blue('New (duplicated) Order:'))
-                print(f'Order Key: {reversedOrder["key"].hex()}')
+                print(green('New (duplicated) Order:'))
+                print(f'Order Key: {duplicateOrder["key"].hex()}')
                 print(white(f'Order Price: {newPrice}'))
 
+        # store new order lists
+        return (newOrders, newOrderKeys)
+
+                
 
         
 underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
@@ -243,7 +259,10 @@ initializor = 0
 
 loop = True
 while loop == True:
-    rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
+    result = rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
+    if initializor != 0:
+        orders = result[0]
+        orderKeys = result[1]
     initializor += 1
     time.sleep(expiryLength)
 
