@@ -31,6 +31,8 @@ def fetchPrice(underlying, maturity) -> float:
 def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength):
     # establish the "market price"
     price = fetchPrice(underlying, math.trunc(maturity))
+    print('Current Price:')
+    print(price)
     price = float(price)
     # use 95% of allocated capital
     safeAmount = amount * .95 * 10**int(decimals)
@@ -47,6 +49,10 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     # determine how spread each tick is
     upperTickDiff = upperDiff / numTicks
     lowerTickDiff = lowerDiff / numTicks
+    print('Upper Tick Diff:')
+    print(upperTickDiff)
+    print('Lower Tick Diff:')
+    print(lowerTickDiff)
 
     # set initial order expiries
     expiry = float(time.time()) + expiryLength
@@ -182,6 +188,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 timeDiff = maturity - time.time()
                 timeModifier = expiryLength / timeDiff
                 price = orders[i]['meta']['price']
+                print(f'Price: {price}')
                 newPrice = price - (price * timeModifier)
 
                 # determine the new premium amount
@@ -233,6 +240,8 @@ loop = True
 while loop == True:
     rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     initializor += 1
+    print('Orders:')
+    print(orders)
     time.sleep(expiryLength)
 
 stop()
