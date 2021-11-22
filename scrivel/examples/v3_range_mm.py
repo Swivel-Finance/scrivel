@@ -57,6 +57,7 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     if lowerDiff < 0 or upperDiff < 0:
         print('Error: Market rates are too high or low for range')
         exit(1)
+
     # determine how spread each tick is
     upperTickDiff = upperDiff / numTicks
     lowerTickDiff = lowerDiff / numTicks
@@ -95,7 +96,7 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         orderKeys.append(orderKey)
         orders.append(apiOrder)
 
-        print(blue('Upper Order #'+str(i+1)))
+        print(red('Upper Order #'+str(i+1)))
         print(white(f'Order Price: {tickOrderPrice}'))
         print(f'Order Key: {orderKey}')
         print(f'Order Response: {orderResponse}')
@@ -127,7 +128,7 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         apiOrder = order(orderKey)
         orders.append(apiOrder)
 
-        print(blue('Lower Order #'+str(i+1)))
+        print(green('Lower Order #'+str(i+1)))
         print(white(f'Order Price: {tickOrderPrice}'))
         print(f'Lower Key: {orderKey}')
         print(f'Order Response: {orderResponse}')
