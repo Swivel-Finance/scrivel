@@ -150,7 +150,6 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
             newExpiry = float(time.time()) + expiryLength
 
             # determine if the order has been filled
-        
             if returnedOrder['meta']['principalAvailable'] != orders[i]['meta']['principalAvailable']:
 
                 # adjust for time difference
@@ -162,7 +161,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 principalDiff = float(orders[i]['meta']['principalAvailable']) - float(returnedOrder['meta']['principalAvailable'])
                 premiumDiff = principalDiff * newPrice
 
-                orderType = orders[i]['meta']['exit']
+                orderType = orders[i]['order']['exit']
 
                 # determine order type and place the new order
                 if orderType == True:
