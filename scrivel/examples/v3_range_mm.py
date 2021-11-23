@@ -208,10 +208,10 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     print(f'Order Key: {replacedOrder["key"].hex()}')
                     print(white(f'Order Price: {newPrice}'))
                     print(' ')
-                
-                # append the replaced order to the list
-                newOrders.append(apiOrder)
-                newOrderKeys.append(replacedOrder['key'].hex())
+                    
+                    # append the replaced order to the list
+                    newOrders.append(apiOrder)
+                    newOrderKeys.append(replacedOrder['key'].hex())
                 
             # if the order has not been filled, adjust for time difference and place a new order at the same rate and principal
             else:
