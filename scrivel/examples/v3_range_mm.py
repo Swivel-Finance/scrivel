@@ -190,7 +190,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 print(' ')
 
                 # if the order is completely filled (or 95% filled), ignore it, otherwise replace the order
-                if returnedOrder['meta']['principalAvailable'] - orders[i]['meta']['principalAvailable'] <= (orders[i]['order']['principal'] * .05):
+                if float(returnedOrder['meta']['principalAvailable']) - float(orders[i]['meta']['principalAvailable']) <= (float(orders[i]['order']['principal']) * .05):
                     pass
                 else:
                     # replace whatever volume has not been filled
@@ -249,15 +249,13 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
         # store new order lists
         return (newOrders, newOrderKeys)
 
-                
-
         
-underlying = "0x4DBCdF9B62e891a7cec5A2568C3F4FAF9E8Abe2b"
-maturity = float(1638334799)
+underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
+maturity = float(1662089767)
 decimals = float(18)
 amount = float(1000)
-upperRate = float(650)
-lowerRate = float(200)
+upperRate = float(18)
+lowerRate = float(3)
 numTicks = int(3)
 expiryLength = float(600)
 PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
@@ -279,5 +277,4 @@ while loop == True:
         orderKeys = result[1]
     initializor += 1
     time.sleep(expiryLength)
-
 stop()
