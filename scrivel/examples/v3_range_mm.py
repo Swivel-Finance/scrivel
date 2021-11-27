@@ -187,6 +187,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 print(red('New (reversed) Order:'))
                 print(f'Order Key: {reversedOrder["key"].hex()}')
                 print(white(f'Order Price: {newPrice}'))
+                print(f'Order Response: {orderResponse}')
                 print(' ')
 
                 # if the order is completely filled (or 95% filled), ignore it, otherwise replace the order
@@ -207,6 +208,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     print(cyan('Replaced Order:'))
                     print(f'Order Key: {replacedOrder["key"].hex()}')
                     print(white(f'Order Price: {newPrice}'))
+                    print(f'Order Response: {orderResponse}')
                     print(' ')
                     
                     # append the replaced order to the list
@@ -219,7 +221,6 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 timeDiff = maturity - time.time()
                 timeModifier = expiryLength / timeDiff
                 price = orders[i]['meta']['price']
-                print(f'Price: {price}')
                 price = float(price)
                 newPrice = price - (price * timeModifier)
 
@@ -245,6 +246,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 print(green('New (duplicated) Order:'))
                 print(f'Order Key: {duplicateOrder["key"].hex()}')
                 print(white(f'Order Price: {newPrice}'))
+                print(f'Order Response: {orderResponse}')
                 print(' ')
 
         # store new order lists
@@ -254,11 +256,11 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
 maturity = float(1662089767)
 decimals = float(18)
-amount = float(1000)
+amount = float(5000)
 upperRate = float(18)
 lowerRate = float(3)
 numTicks = int(3)
-expiryLength = float(75)
+expiryLength = float(300)
 PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
 start()
 
