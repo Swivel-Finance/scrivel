@@ -111,8 +111,8 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
 
         amount = safeAmount / (2 ** exponent)
 
-        premium = tickAmount
-        principal = premium/tickPrice
+        principal = amount
+        premium = amount * tickPrice
 
         tickOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(principal), premium=int(premium), expiry=int(expiry))
         tickOrderPrice = premium/principal
@@ -190,7 +190,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 print(' ')
 
                 # if the order is completely filled (or 95% filled), ignore it, otherwise replace the order
-                if float(returnedOrder['meta']['principalAvailable']) - float(orders[i]['meta']['principalAvailable']) <= (float(orders[i]['order']['principal']) * .05):
+                if float(returnedOrder['meta']['principalAvailable']) <= (float(orders[i]['order']['principal']) * .05):
                     pass
                 else:
                     # replace whatever volume has not been filled
@@ -198,7 +198,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     recplacedPremium = replacedPrincipal * newPrice
                     
                     replacedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(replacedPrincipal), premium=int(recplacedPremium), expiry=int(newExpiry))
-                    signature = vendor.sign_order(reversedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
+                    signature = vendor.sign_order(replacedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
                     signature = "0x"+signature
                     orderResponse = limit_order(stringify(reversedOrder), signature)
                     apiOrder = order(replacedOrder['key'].hex())
@@ -218,8 +218,9 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 # adjust for time difference
                 timeDiff = maturity - time.time()
                 timeModifier = expiryLength / timeDiff
-                price = float(orders[i]['meta']['price'])
+                price = orders[i]['meta']['price']
                 print(f'Price: {price}')
+                price = float(price)
                 newPrice = price - (price * timeModifier)
 
                 # determine the new premium amount
@@ -257,7 +258,7 @@ amount = float(1000)
 upperRate = float(18)
 lowerRate = float(3)
 numTicks = int(3)
-expiryLength = float(600)
+expiryLength = float(75)
 PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
 start()
 
