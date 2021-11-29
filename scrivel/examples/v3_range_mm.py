@@ -281,11 +281,11 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
 maturity = float(1662089767)
 decimals = float(18)
-amount = float(5000)
+amount = float(10000)
 upperRate = float(18)
 lowerRate = float(3)
 numTicks = int(3)
-expiryLength = float(100)
+expiryLength = float(300)
 network = "rinkeby"
 compoundRateLean = float(1)
 PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
