@@ -154,7 +154,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
         newCompoundRate = underlyingCompoundRate(underlying, maturity)
         compoundRateDiff = (newCompoundRate - compoundRate) / compoundRate
 
-        print('Compound Rate Diff:')
+        print('Compound Rate Variance:')
         print(str(compoundRateDiff*100)+'%')
 
         # For every order in the provided range, check if it has been filled at all. If it has, place a reversed order at the same price (similar to uniswap v3)

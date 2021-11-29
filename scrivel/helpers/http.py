@@ -29,8 +29,8 @@ def compoundCTokens(n):
     headers["Accept"] = "application/json"
     headers["Content-Type"] = "application/json"
     # comment out when no longer using Rinkeby
-    n = "ropsten"
-    data = '{"network":"ropsten"}'
+    n = "mainnet"
+    data = '{"network":'+n+'}'
 
     resp = requests.post(url, headers=headers, data=data)
     return resp.json()
@@ -40,10 +40,10 @@ def underlyingCompoundRate(u, n):
     """Return the current compound token price"""
     cTokens = compoundCTokens(n)
     # Comment out when no longer using Rinkeby
-    u = "0x31f42841c2db5173425b5223809cf3a38fede360"
+    u = "0x6b175474e89094c44da98b954eedeac495271d0f"
     for c in cTokens['cToken']:
         if c['underlying_address'] == u:
-            return c['supply_rate']
+            return float(c['supply_rate']['value'])
 
 def invalidateOrder(u, m, k):
     """Given an order key, invalidate it"""
