@@ -15,6 +15,7 @@ from scrivel.helpers.http import (
     last_trade,
     limit_order,
     order,
+    underlyingCompoundRate,
 )
 
 from scrivel.helpers.colors import(
@@ -109,10 +110,12 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
 
         exponent = numTicks-i
 
-        amount = safeAmount / (2 ** exponent)
+        lowerSafeAmount = safeAmount * price
 
-        principal = amount
-        premium = amount * tickPrice
+        amount = lowerSafeAmount / (2 ** exponent)
+
+        principal = amount / tickPrice
+        premium = amount
 
         tickOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(principal), premium=int(premium), expiry=int(expiry))
         tickOrderPrice = premium/principal
@@ -141,18 +144,34 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
     print(' ')
     newOrders = []
     newOrderKeys = []
+    if len(orders) != len(orderKeys):
+        print('Error: Order count does not match key count')
+        exit(1)
     if initializor == 0:
         initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     else:
+        # store new compound rate and establish difference
+        newCompoundRate = underlyingCompoundRate(underlying, maturity)
+        compoundRateDiff = (newCompoundRate - compoundRate) / compoundRate
+
+        print('Compound Rate Diff:')
+        print(str(compoundRateDiff*100)+'%')
+
         # For every order in the provided range, check if it has been filled at all. If it has, place a reversed order at the same price (similar to uniswap v3)
         for i in range (0, len(orderKeys)):
 
             orderKey = orderKeys[i]
+
+            if orderKey != orders[i]['order']['key']:
+                print('Error: Order key does not match order')
+                exit(1)
+
             returnedOrder = order(orderKey)
             newExpiry = float(time.time()) + expiryLength
+            principalDiff = float(orders[i]['meta']['principalAvailable']) - float(returnedOrder['meta']['principalAvailable'])
 
-            # determine if the order has been filled
-            if returnedOrder['meta']['principalAvailable'] != orders[i]['meta']['principalAvailable']:
+            # determine if the order has been filled, and if it is large enough to place again
+            if returnedOrder['meta']['principalAvailable'] != orders[i]['meta']['principalAvailable'] and (principalDiff >= (float(orders[i]['order']['principal']) * .05)):
 
                 # adjust for time difference
                 timeDiff = maturity - time.time()
@@ -160,8 +179,11 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 timeModifier = expiryLength / timeDiff
                 newPrice = price - (price * timeModifier)
 
-                principalDiff = float(orders[i]['meta']['principalAvailable']) - float(returnedOrder['meta']['principalAvailable'])
-                premiumDiff = principalDiff * newPrice
+                # adjust for changes in underlying compound rate
+                compoundAdjustedImpact = newPrice * (compoundRateLean * compoundRateDiff)
+                compoundAdjustedPrice = newPrice + compoundAdjustedImpact
+
+                premiumDiff = principalDiff * compoundAdjustedPrice
 
                 orderType = orders[i]['order']['exit']
 
@@ -186,7 +208,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 # print order info
                 print(red('New (reversed) Order:'))
                 print(f'Order Key: {reversedOrder["key"].hex()}')
-                print(white(f'Order Price: {newPrice}'))
+                print(white(f'Order Price: {compoundAdjustedPrice}'))
                 print(f'Order Response: {orderResponse}')
                 print(' ')
 
@@ -196,37 +218,40 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 else:
                     # replace whatever volume has not been filled
                     replacedPrincipal = float(returnedOrder['meta']['principalAvailable'])
-                    recplacedPremium = replacedPrincipal * newPrice
+                    recplacedPremium = replacedPrincipal * compoundAdjustedPrice
                     
                     replacedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(replacedPrincipal), premium=int(recplacedPremium), expiry=int(newExpiry))
                     signature = vendor.sign_order(replacedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
                     signature = "0x"+signature
-                    orderResponse = limit_order(stringify(reversedOrder), signature)
+                    orderResponse = limit_order(stringify(replacedOrder), signature)
                     apiOrder = order(replacedOrder['key'].hex())
                     
                     # print order info
                     print(cyan('Replaced Order:'))
                     print(f'Order Key: {replacedOrder["key"].hex()}')
-                    print(white(f'Order Price: {newPrice}'))
+                    print(white(f'Order Price: {compoundAdjustedPrice}'))
                     print(f'Order Response: {orderResponse}')
                     print(' ')
                     
                     # append the replaced order to the list
                     newOrders.append(apiOrder)
                     newOrderKeys.append(replacedOrder['key'].hex())
-                
+
             # if the order has not been filled, adjust for time difference and place a new order at the same rate and principal
             else:
                 # adjust for time difference
                 timeDiff = maturity - time.time()
                 timeModifier = expiryLength / timeDiff
-                price = orders[i]['meta']['price']
-                price = float(price)
+                price = float(orders[i]['meta']['price'])
                 newPrice = price - (price * timeModifier)
+
+                # adjust for changes in underlying compound rate
+                compoundAdjustedImpact = newPrice * (compoundRateLean * compoundRateDiff)
+                compoundAdjustedPrice = newPrice + compoundAdjustedImpact               
 
                 # determine the new premium amount
                 duplicatePrincipal = float(orders[i]['order']['principal'])
-                duplicatePremium = duplicatePrincipal * newPrice
+                duplicatePremium = duplicatePrincipal * compoundAdjustedPrice
 
                 orderExit = orders[i]['order']['exit']
                 orderVault = orders[i]['order']['vault']
@@ -245,7 +270,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 # print order info
                 print(green('New (duplicated) Order:'))
                 print(f'Order Key: {duplicateOrder["key"].hex()}')
-                print(white(f'Order Price: {newPrice}'))
+                print(white(f'Order Price: {compoundAdjustedPrice}'))
                 print(f'Order Response: {orderResponse}')
                 print(' ')
 
@@ -260,7 +285,9 @@ amount = float(5000)
 upperRate = float(18)
 lowerRate = float(3)
 numTicks = int(3)
-expiryLength = float(300)
+expiryLength = float(100)
+network = "rinkeby"
+compoundRateLean = float(1)
 PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
 start()
 
@@ -279,5 +306,6 @@ while loop == True:
         orders = result[0]
         orderKeys = result[1]
     initializor += 1
+    compoundRate = underlyingCompoundRate(underlying, network)
     time.sleep(expiryLength)
 stop()
