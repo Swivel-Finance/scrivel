@@ -274,7 +274,6 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 print(f'Order Response: {orderResponse}')
                 print(' ')
 
-        # store new order lists
         return (newOrders, newOrderKeys)
 
         
@@ -305,6 +304,7 @@ while loop == True:
     if initializor != 0:
         orders = result[0]
         orderKeys = result[1]
+        print(len(orders))
     initializor += 1
     compoundRate = underlyingCompoundRate(underlying, network)
     time.sleep(expiryLength)
