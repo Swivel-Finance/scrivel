@@ -220,7 +220,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     replacedPrincipal = float(returnedOrder['meta']['principalAvailable'])
                     recplacedPremium = replacedPrincipal * compoundAdjustedPrice
                     
-                    replacedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(replacedPrincipal), premium=int(recplacedPremium), expiry=int(newExpiry))
+                    replacedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=orderType, principal=int(replacedPrincipal), premium=int(recplacedPremium), expiry=int(newExpiry))
                     signature = vendor.sign_order(replacedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
                     signature = "0x"+signature
                     orderResponse = limit_order(stringify(replacedOrder), signature)
