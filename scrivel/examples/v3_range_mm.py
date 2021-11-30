@@ -26,6 +26,7 @@ from scrivel.helpers.colors import(
     green,
     red,
     cyan,
+    yellow,
 )
 
 def fetchPrice(underlying, maturity) -> float:
@@ -192,24 +193,20 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     reversedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(principalDiff), premium=int(premiumDiff), expiry=int(newExpiry))
                     signature = vendor.sign_order(reversedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")     
                     signature = "0x"+signature
-                    orderResponse = limit_order(stringify(reversedOrder), signature)
-                    apiOrder = order(reversedOrder['key'].hex())
                 else:
                     reversedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=True, principal=int(principalDiff), premium=int(premiumDiff), expiry=int(newExpiry))
                     signature = vendor.sign_order(reversedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")     
                     signature = "0x"+signature
-                    orderResponse = limit_order(stringify(reversedOrder), signature)
-                    apiOrder = order(reversedOrder['key'].hex())
 
                 # append the reversed order to the list
-                newOrders.append(apiOrder)
-                newOrderKeys.append(reversedOrder['key'].hex())
+                queuedOrders.append(reversedOrder)
+                queuedOrderSignatures.append(signature)
+                queuedOrderKeys.append(reversedOrder['key'].hex())
 
                 # print order info
                 print(red('New (reversed) Order:'))
                 print(f'Order Key: {reversedOrder["key"].hex()}')
                 print(white(f'Order Price: {compoundAdjustedPrice}'))
-                print(f'Order Response: {orderResponse}')
                 print(' ')
 
                 # if the order is completely filled (or 95% filled), ignore it, otherwise replace the order
@@ -223,19 +220,17 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     replacedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=orderType, principal=int(replacedPrincipal), premium=int(recplacedPremium), expiry=int(newExpiry))
                     signature = vendor.sign_order(replacedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
                     signature = "0x"+signature
-                    orderResponse = limit_order(stringify(replacedOrder), signature)
-                    apiOrder = order(replacedOrder['key'].hex())
                     
                     # print order info
                     print(cyan('Replaced Order:'))
                     print(f'Order Key: {replacedOrder["key"].hex()}')
                     print(white(f'Order Price: {compoundAdjustedPrice}'))
-                    print(f'Order Response: {orderResponse}')
                     print(' ')
                     
                     # append the replaced order to the list
-                    newOrders.append(apiOrder)
-                    newOrderKeys.append(replacedOrder['key'].hex())
+                    queuedOrders.append(replacedOrder)
+                    queuedOrderSignatures.append(signature)
+                    queuedOrderKeys.append(replacedOrder['key'].hex())
 
             # if the order has not been filled, adjust for time difference and place a new order at the same rate and principal
             else:
@@ -259,20 +254,112 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 duplicateOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=orderVault, exit=orderExit, principal=int(duplicatePrincipal), premium=int(duplicatePremium), expiry=int(newExpiry))
                 signature = vendor.sign_order(duplicateOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
                 signature = "0x"+signature
-                orderResponse = limit_order(stringify(duplicateOrder), signature)
-
-                apiOrder = order(duplicateOrder['key'].hex())
 
                 # append the duplicate order to the list
-                newOrders.append(apiOrder)
-                newOrderKeys.append(duplicateOrder['key'].hex())
+                queuedOrders.append(duplicateOrder)
+                queuedOrderSignatures.append(signature)
+                queuedOrderKeys.append(duplicateOrder['key'].hex())
 
                 # print order info
                 print(green('New (duplicated) Order:'))
                 print(f'Order Key: {duplicateOrder["key"].hex()}')
                 print(white(f'Order Price: {compoundAdjustedPrice}'))
+                print(' ')
+        
+
+        # todo ensure that more than one can be combined at once, moreso ensure that you record the orders that are combined, then place them, rather than placing them as they are combined
+
+        combined = []
+        usedOrders = []
+        usedOrderKeys = []
+        usedOrderSignatures = []
+        # iterate through the orders
+        for i in range (0, len(queuedOrderKeys)):
+            baseOrder = queuedOrders[i]
+            baseOrderKey = queuedOrderKeys[i]
+            baseOrderSignature = queuedOrderSignatures[i]
+            combinedPrincipal = 0
+            combinedPremium = 0
+            combined = False
+            # if the order has not already been combined or placed with another order
+            if baseOrderKey not in usedOrderKeys:
+                # iterate through the orders again to find orders that can be combined with the current order
+                for j in range (0, len(queuedOrderKeys)):
+                    # ensure not comparing to self
+                    if baseOrderKey != queuedOrderKeys[j]:
+                        queuedOrderPrice = queuedOrders[j]['premium'] / queuedOrders[j]['principal']
+                        baseOrderPrice = baseOrder['premium'] / baseOrder['principal']
+                        # if the two orders are within .005 of each other
+                        if abs(queuedOrderPrice - baseOrderPrice) <= .0025:
+                            # and the orderTypes are the same, combine the orders
+                            if queuedOrders[j]['exit'] == baseOrder['exit']:
+                                # combine the amounts
+                                combinedPrincipal += float(queuedOrders[j]['principal']) + float(baseOrder['principal'])
+                                combinedPremium += float(queuedOrders[j]['premium']) + float(baseOrder['premium'])
+                                
+
+                                # create and place the order
+                                combinedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=baseOrder['exit'], principal=int(combinedPrincipal), premium=int(combinedPremium), expiry=int(newExpiry))
+                                signature = vendor.sign_order(combinedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
+                                signature = "0x"+signature
+                                orderResponse = limit_order(stringify(combinedOrder), signature, 4)
+
+                                combinedOrderKey = combinedOrder['key'].hex()
+                                apiOrder = order(combinedOrderKey)
+
+                                # mark the orders that were combined as "used"
+                                usedOrders.append(queuedOrders[j])
+                                usedOrderKeys.append(queuedOrderKeys[j])
+                                usedOrderSignatures.append(queuedOrderSignatures[j])
+
+                                # store the combined order
+                                newOrders.append(apiOrder)
+                                newOrderKeys.append(combinedOrderKey)
+
+                                # print used order info
+                                print(green('Used Order:'))
+                                print(f'Order Key: {queuedOrderKeys[j]}')
+
+                                # print order info
+                                print(green('Placed Order:'))
+                                print(f'Order Key: {combinedOrderKey}')
+                                print(white(f'Order Price: {combinedOrderPrice}'))
+                                print(f'Order Response: {orderResponse}')
+                                print(' ')
+
+                                # set combined marker
+                                combined = True
+
+            # if the order was not combined with any others, place the order
+            if combined == False:
+                orderResponse = limit_order(stringify(baseOrder), baseOrderSignature, 4)
+                apiOrder = order(baseOrderKey)
+
+                # print order info
+                print(yellow('Combined Order:'))
+                print(f'Order Key: {baseOrderKey}')
+                print(white(f'Order Price: {combinedOrderPrice}'))
                 print(f'Order Response: {orderResponse}')
                 print(' ')
+                                
+
+
+            orderResponse = limit_order(stringify(baseOrder), baseOrderSignature)
+            apiOrder = order(baseOrderKey)
+            
+            # print order info
+            print(green('Placed Order:'))
+            print(f'Order Key: {baseOrderKey}')
+            print(white(f'Order Price: {apiOrder["meta"]["price"]}'))
+            print(' ')
+
+            # append the placed order to the list
+            placedOrders.append(baseOrder)
+            placedOrderKeys.append(baseOrderKey)
+            placedOrderSignatures.append(baseOrderSignature)
+        
+            
+
 
         return (newOrders, newOrderKeys)
 
@@ -295,6 +382,10 @@ vendor = W3(provider, PUBLIC_KEY)
 
 orderKeys = []
 orders = []
+queuedOrderKeys = []
+queuedOrderSignatures = []
+queuedOrders = []
+
 
 initializor = 0
 
