@@ -15,6 +15,7 @@ from scrivel.helpers.http import (
     last_trade,
     limit_order,
     order,
+    underlyingCompoundRate,
 )
 
 from scrivel.helpers.colors import(
@@ -22,6 +23,9 @@ from scrivel.helpers.colors import(
     stop,
     blue,
     white,
+    green,
+    red,
+    cyan,
 )
 
 def fetchPrice(underlying, maturity) -> float:
@@ -31,6 +35,8 @@ def fetchPrice(underlying, maturity) -> float:
 def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength):
     # establish the "market price"
     price = fetchPrice(underlying, math.trunc(maturity))
+    print('Current Price:')
+    print(price)
     price = float(price)
     # use 95% of allocated capital
     safeAmount = amount * .95 * 10**int(decimals)
@@ -39,14 +45,27 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     timeDiff = maturity - time.time()
     timeModifier = (timeDiff / 31536000)
     marketRate = price / timeModifier * 100
+    print('Market Rate:')
+    print(marketRate)
 
     # determine upper / lower ranges
     upperDiff = upperRate - marketRate
     lowerDiff = marketRate - lowerRate
+    print('Upper Diff:')
+    print(upperDiff)
+    print('Lower Diff:')
+    print(lowerDiff)
+    if lowerDiff < 0 or upperDiff < 0:
+        print('Error: Market rates are too high or low for range')
+        exit(1)
 
     # determine how spread each tick is
     upperTickDiff = upperDiff / numTicks
     lowerTickDiff = lowerDiff / numTicks
+    print('Upper Tick Diff:')
+    print(upperTickDiff)
+    print('Lower Tick Diff:')
+    print(lowerTickDiff)
 
     # set initial order expiries
     expiry = float(time.time()) + expiryLength
@@ -66,7 +85,11 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
 
         # create, sign, and place the order
         tickOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=True, principal=int(principal), premium=int(premium), expiry=int(expiry))
+        tickOrderPrice = premium/principal
+
         signature = vendor.sign_order(tickOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
+        signature = "0x"+signature
+
         orderResponse = limit_order(stringify(tickOrder), signature)
         # store order and key
         orderKey = tickOrder['key'].hex()
@@ -74,11 +97,10 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         orderKeys.append(orderKey)
         orders.append(apiOrder)
 
-        apiOrderPrice = apiOrder['meta']['price']
-
-        print(blue('Upper Order #'+str(i)))
-        print(white(f'Order Price: {apiOrderPrice}'))
+        print(red('Upper Order #'+str(i+1)))
+        print(white(f'Order Price: {tickOrderPrice}'))
         print(f'Order Key: {orderKey}')
+        print(f'Order Response: {orderResponse}')
         print(' ')
 
 
@@ -88,14 +110,18 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
 
         exponent = numTicks-i
 
-        amount = safeAmount / (2 ** exponent)
+        lowerSafeAmount = safeAmount * price
 
-        premium = tickAmount
-        principal = premium/tickPrice
+        amount = lowerSafeAmount / (2 ** exponent)
+
+        principal = amount / tickPrice
+        premium = amount
 
         tickOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(principal), premium=int(premium), expiry=int(expiry))
+        tickOrderPrice = premium/principal
 
         signature = vendor.sign_order(tickOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
+        signature = "0x"+signature
 
         orderResponse = limit_order(stringify(tickOrder), signature)
 
@@ -104,121 +130,164 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
 
         apiOrder = order(orderKey)
         orders.append(apiOrder)
-        apiOrderPrice = apiOrder['meta']['price']
 
-        print(blue('Lower Order #'+str(i)))
-        print(white(f'Lower Price: {apiOrderPrice}'))
+        print(green('Lower Order #'+str(i+1)))
+        print(white(f'Order Price: {tickOrderPrice}'))
         print(f'Lower Key: {orderKey}')
+        print(f'Order Response: {orderResponse}')
         print(' ')
 
 
 def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength):
     print('Current Time:')
     print(datetime.datetime.utcfromtimestamp(int(time.time())).strftime('%Y-%m-%d %H:%M:%S'))
+    print(' ')
+    newOrders = []
+    newOrderKeys = []
+    if len(orders) != len(orderKeys):
+        print('Error: Order count does not match key count')
+        exit(1)
     if initializor == 0:
         initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     else:
+        # store new compound rate and establish difference
+        newCompoundRate = underlyingCompoundRate(underlying, maturity)
+        compoundRateDiff = (newCompoundRate - compoundRate) / compoundRate
+
+        print('Compound Rate Variance:')
+        print(str(compoundRateDiff*100)+'%')
+
         # For every order in the provided range, check if it has been filled at all. If it has, place a reversed order at the same price (similar to uniswap v3)
         for i in range (0, len(orderKeys)):
 
             orderKey = orderKeys[i]
+
+            if orderKey != orders[i]['order']['key']:
+                print('Error: Order key does not match order')
+                exit(1)
+
             returnedOrder = order(orderKey)
             newExpiry = float(time.time()) + expiryLength
+            principalDiff = float(orders[i]['meta']['principalAvailable']) - float(returnedOrder['meta']['principalAvailable'])
 
-            # determine if the order has been filled
-            if returnedOrder['meta']['principalAvailable'] != orders[i]['meta']['principalAvailable']:
+            # determine if the order has been filled, and if it is large enough to place again
+            if returnedOrder['meta']['principalAvailable'] != orders[i]['meta']['principalAvailable'] and (principalDiff >= (float(orders[i]['order']['principal']) * .05)):
 
                 # adjust for time difference
                 timeDiff = maturity - time.time()
-                price = orders[i]['meta']['price']
+                price = float(orders[i]['meta']['price'])
                 timeModifier = expiryLength / timeDiff
                 newPrice = price - (price * timeModifier)
 
-                principalDiff = orders[i]['meta']['principalAvailable'] - returnedOrder['meta']['principalAvailable']
-                premiumDiff = principalDiff * newPrice
+                # adjust for changes in underlying compound rate
+                compoundAdjustedImpact = newPrice * (compoundRateLean * compoundRateDiff)
+                compoundAdjustedPrice = newPrice + compoundAdjustedImpact
 
-                orderType = orders[i]['meta']['exit']
+                premiumDiff = principalDiff * compoundAdjustedPrice
+
+                orderType = orders[i]['order']['exit']
 
                 # determine order type and place the new order
                 if orderType == True:
                     reversedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(principalDiff), premium=int(premiumDiff), expiry=int(newExpiry))
                     signature = vendor.sign_order(reversedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")     
+                    signature = "0x"+signature
                     orderResponse = limit_order(stringify(reversedOrder), signature)
+                    apiOrder = order(reversedOrder['key'].hex())
                 else:
                     reversedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=True, principal=int(principalDiff), premium=int(premiumDiff), expiry=int(newExpiry))
                     signature = vendor.sign_order(reversedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")     
+                    signature = "0x"+signature
                     orderResponse = limit_order(stringify(reversedOrder), signature)
-
-                # if the order is completely filled (or 95% filled), remove it from the list
-                if returnedOrder['meta']['principalAvailable'] - orders[i]['meta']['principalAvailable'] <= (orders[i]['order']['principal'] * .05):
-                    orderKeys.pop(i)
-                    orders.pop(i)
+                    apiOrder = order(reversedOrder['key'].hex())
 
                 # append the reversed order to the list
-                orders.append(reversedOrder)
-                orderKeys.append(reversedOrder['key'].hex())
+                newOrders.append(apiOrder)
+                newOrderKeys.append(reversedOrder['key'].hex())
 
                 # print order info
-                print(blue('New (reversed) Order:'))
+                print(red('New (reversed) Order:'))
                 print(f'Order Key: {reversedOrder["key"].hex()}')
-                print(white(f'Order Price: {reversedOrder["meta"]["price"]}'))
+                print(white(f'Order Price: {compoundAdjustedPrice}'))
+                print(f'Order Response: {orderResponse}')
+                print(' ')
 
-                # replace whatever volume has not been filled
-                replacedPrincipal = returnedOrder['meta']['principalAvailable']
-                recplacedPremium = replacedPrincipal * newPrice
-
-                replacedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(replacedPrincipal), premium=int(recplacedPremium), expiry=int(newExpiry))
-                signature = vendor.sign_order(reversedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")     
-                orderResponse = limit_order(stringify(reversedOrder), signature)
-                
-                # print order info
-                print(blue('Replaced Order:'))
-                print(f'Order Key: {replacedOrder["key"].hex()}')
-                print(white(f'Order Price: {newPrice}'))
+                # if the order is completely filled (or 95% filled), ignore it, otherwise replace the order
+                if float(returnedOrder['meta']['principalAvailable']) <= (float(orders[i]['order']['principal']) * .05):
+                    pass
+                else:
+                    # replace whatever volume has not been filled
+                    replacedPrincipal = float(returnedOrder['meta']['principalAvailable'])
+                    recplacedPremium = replacedPrincipal * compoundAdjustedPrice
+                    
+                    replacedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=orderType, principal=int(replacedPrincipal), premium=int(recplacedPremium), expiry=int(newExpiry))
+                    signature = vendor.sign_order(replacedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
+                    signature = "0x"+signature
+                    orderResponse = limit_order(stringify(replacedOrder), signature)
+                    apiOrder = order(replacedOrder['key'].hex())
+                    
+                    # print order info
+                    print(cyan('Replaced Order:'))
+                    print(f'Order Key: {replacedOrder["key"].hex()}')
+                    print(white(f'Order Price: {compoundAdjustedPrice}'))
+                    print(f'Order Response: {orderResponse}')
+                    print(' ')
+                    
+                    # append the replaced order to the list
+                    newOrders.append(apiOrder)
+                    newOrderKeys.append(replacedOrder['key'].hex())
 
             # if the order has not been filled, adjust for time difference and place a new order at the same rate and principal
             else:
                 # adjust for time difference
                 timeDiff = maturity - time.time()
                 timeModifier = expiryLength / timeDiff
-                price = orders[i]['meta']['price']
+                price = float(orders[i]['meta']['price'])
                 newPrice = price - (price * timeModifier)
 
+                # adjust for changes in underlying compound rate
+                compoundAdjustedImpact = newPrice * (compoundRateLean * compoundRateDiff)
+                compoundAdjustedPrice = newPrice + compoundAdjustedImpact               
+
                 # determine the new premium amount
-                duplicatePrincipal = orders[i]['order']['principal']
-                duplicatePremium = duplicatePrincipal * newPrice
+                duplicatePrincipal = float(orders[i]['order']['principal'])
+                duplicatePremium = duplicatePrincipal * compoundAdjustedPrice
 
                 orderExit = orders[i]['order']['exit']
                 orderVault = orders[i]['order']['vault']
 
                 duplicateOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=orderVault, exit=orderExit, principal=int(duplicatePrincipal), premium=int(duplicatePremium), expiry=int(newExpiry))
                 signature = vendor.sign_order(duplicateOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
+                signature = "0x"+signature
                 orderResponse = limit_order(stringify(duplicateOrder), signature)
 
-                # remove the order from the list
-                orderKeys.pop(i)
-                orders.pop(i)
+                apiOrder = order(duplicateOrder['key'].hex())
 
                 # append the duplicate order to the list
-                orders.append(duplicateOrder)
-                orderKeys.append(duplicateOrder['key'].hex())
+                newOrders.append(apiOrder)
+                newOrderKeys.append(duplicateOrder['key'].hex())
 
                 # print order info
-                print(blue('New (duplicated) Order:'))
-                print(f'Order Key: {reversedOrder["key"].hex()}')
-                print(white(f'Order Price: {newPrice}'))
+                print(green('New (duplicated) Order:'))
+                print(f'Order Key: {duplicateOrder["key"].hex()}')
+                print(white(f'Order Price: {compoundAdjustedPrice}'))
+                print(f'Order Response: {orderResponse}')
+                print(' ')
 
+        return (newOrders, newOrderKeys)
 
         
-underlying = input('What is the underlying token address: ') #"0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
-maturity = float(input('What is the market maturity: ')) #float(1662089767)
-decimals = float(input('How many decimals does the token have: ')) #float(18)
-amount = float(input('How many nTokens do you want to use as inventory (must have equivalent underlying inventory): ')) #float(1000)
-upperRate = float(input('What is the max rate you want to predict: ')) #float(20)
-lowerRate = float(input('What is the minimum rate you want to predict: ')) #float(5)
-numTicks = int(input('How many ticks do you want to make: ')) #int(5)
-expiryLength = float(input('How often do you want to update your orders: ')) #float(600)
-PUBLIC_KEY = input('What is your public key: ') #"0x7111F9Aeb2C1b9344EC274780dc9e3806bdc60Ef"
+underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
+maturity = float(1662089767)
+decimals = float(18)
+amount = float(10000)
+upperRate = float(18)
+lowerRate = float(3)
+numTicks = int(3)
+expiryLength = float(300)
+network = "rinkeby"
+compoundRateLean = float(1)
+PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
 start()
 
 provider = Web3.HTTPProvider("https://red-icy-surf.rinkeby.quiknode.pro/0cbdd13f2a541b199f1fb70ecc0481d9c452ae01/")
@@ -231,8 +300,12 @@ initializor = 0
 
 loop = True
 while loop == True:
-    rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
+    result = rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
+    if initializor != 0:
+        orders = result[0]
+        orderKeys = result[1]
+        print(len(orders))
     initializor += 1
+    compoundRate = underlyingCompoundRate(underlying, network)
     time.sleep(expiryLength)
-
 stop()

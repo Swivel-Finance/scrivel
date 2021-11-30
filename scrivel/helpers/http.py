@@ -1,4 +1,5 @@
 import requests
+from requests.structures import CaseInsensitiveDict
 
 # the current api-dev exposed for swivel api with a format placeholder
 swivel_api_route = 'https://api-dev.swivel.exchange/v2/{}'
@@ -18,6 +19,40 @@ def new_params(**kwargs):
 
     return params
 
+def compoundCTokens(n):
+    """Given an underlying, return the current compound price"""
+    # Comment out when no longer using Rinkeby
+
+    url = "https://api.compound.finance/api/v2/ctoken"
+
+    headers = CaseInsensitiveDict()
+    headers["Accept"] = "application/json"
+    headers["Content-Type"] = "application/json"
+    # comment out when no longer using Rinkeby
+    n = "mainnet"
+    data = '{"network":'+n+'}'
+
+    resp = requests.post(url, headers=headers, data=data)
+    return resp.json()
+
+# Rinkeby network no longer supported by the Compound API
+def underlyingCompoundRate(u, n):
+    """Return the current compound token price"""
+    cTokens = compoundCTokens(n)
+    # Comment out when no longer using Rinkeby
+    u = "0x6b175474e89094c44da98b954eedeac495271d0f"
+    for c in cTokens['cToken']:
+        if c['underlying_address'] == u:
+            return float(c['supply_rate']['value'])
+
+def invalidateOrder(u, m, k):
+    """Given an order key, invalidate it"""
+
+    route = swivel_api_route.format('orders/{}')
+    params = new_params(underlying=u, maturity=m)
+    resp = requests.delete(route, params=params, auth=('sw1w3l','pVzePA8Vfb3ZxmMM'))
+    return resp.status_code, resp.reason
+
 def markets(status=None):
     """Fetch all markets or only active (non-matured) from the Swivel API"""
 
@@ -34,6 +69,13 @@ def last_trade(u, m):
     params = new_params(underlying=u, maturity=m, depth=1)
     resp = requests.get(swivel_api_route.format('fills'), params=params)
     return resp.json()[0]
+
+def orderbook(u, m):
+    """Given an underlying:maturity market pair, fetch the most recent fill activity"""
+
+    params = new_params(underlying=u, maturity=m, depth=25)
+    resp = requests.get(swivel_api_route.format('orderbook'), params=params)
+    return resp.json()
 
 def orders(u, m, a, status=None):
     """Given a market return a list of the orders by the given address
