@@ -160,7 +160,6 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
         # For every order in the provided range, check if it has been filled at all. If it has, place a reversed order at the same price (similar to uniswap v3)
         for i in range (0, len(orderKeys)):
-
             orderKey = orderKeys[i]
 
             if orderKey != orders[i]['order']['key']:
@@ -267,15 +266,14 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 print(' ')
         
 
-        # todo ensure that more than one can be combined at once, moreso ensure that you record the orders that are combined, then place them, rather than placing them as they are combined
         usedOrderKeys = []
         # iterate through the orders
         for i in range (0, len(queuedOrderKeys)):
             baseOrder = queuedOrders[i]
             baseOrderKey = queuedOrderKeys[i]
             baseOrderSignature = queuedOrderSignatures[i]
-            combinedPrincipal = 0
-            combinedPremium = 0
+            combinedPrincipal = float(baseOrder['principal'])
+            combinedPremium = float(baseOrder['premium'])
             combined = False
             # if the order has not already been combined or placed with another order
             if baseOrderKey not in usedOrderKeys:
@@ -289,9 +287,9 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                         if abs(queuedOrderPrice - baseOrderPrice) <= .0025:
                             # and the orderTypes are the same, combine the orders
                             if queuedOrders[j]['exit'] == baseOrder['exit']:
-                                # combine the amounts
-                                combinedPrincipal += float(queuedOrders[j]['principal']) + float(baseOrder['principal'])
-                                combinedPremium += float(queuedOrders[j]['premium']) + float(baseOrder['premium'])
+                                # add the amounts to the combined order 
+                                combinedPrincipal += float(queuedOrders[j]['principal'])
+                                combinedPremium += float(queuedOrders[j]['premium'])
                                 
                                 # mark the orders that were combined as "used"
                                 usedOrderKeys.append(queuedOrderKeys[j])                         
@@ -303,36 +301,48 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                                 # set combined marker
                                 combined = True
                                 
-            # if the order was not combined with any others, place the order
-            if combined == False:
-                orderResponse = limit_order(stringify(baseOrder), baseOrderSignature, 4)
-                apiOrder = order(baseOrderKey)          
-                
-                # print order info
-                print(green('Placed Order:'))
-                print(f'Order Key: {baseOrderKey}')
-                print(white(f'Order Price: {apiOrder["meta"]["price"]}'))
-                print(' ')
+                # if the order was not combined with any others, place the order
+                if combined == False:
+                    orderResponse = limit_order(stringify(baseOrder), baseOrderSignature, 4)
+                    apiOrder = order(baseOrderKey)          
+                    
+                    # print order info
+                    print(green('Placed Order:'))
+                    print(f'Order Key: {baseOrderKey}')
+                    print(white(f'Order Price: {apiOrder["meta"]["price"]}'))
+                    print(f'Order Response: {orderResponse}')
+                    print(' ')
 
-                # append the placed order to the list
-                newOrders.append(baseOrder)
-                newOrderKeys.append(baseOrderKey)
+                    # append the placed order to the list
+                    newOrders.append(baseOrder)
+                    newOrderKeys.append(baseOrderKey)
 
-            # create and place the combined order
-            combinedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=baseOrder['exit'], principal=int(combinedPrincipal), premium=int(combinedPremium), expiry=int(newExpiry))
-            signature = vendor.sign_order(combinedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
-            signature = "0x"+signature
-            orderResponse = limit_order(stringify(combinedOrder), signature, 4)
-            combinedOrderPrice = float(combinedOrder['premium']) / float(combinedOrder['principal'])
-            combinedOrderKey = combinedOrder['key'].hex()
-            apiOrder = order(combinedOrderKey)
+                    # mark the order as "used"
+                    usedOrderKeys.append(baseOrderKey)    
+                else:
+                    # create and place the combined order
+                    combinedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=baseOrder['exit'], principal=int(combinedPrincipal), premium=int(combinedPremium), expiry=int(newExpiry))
+                    signature = vendor.sign_order(combinedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
+                    signature = "0x"+signature
+                    orderResponse = limit_order(stringify(combinedOrder), signature, 4)
 
-            # print order info
-            print(green('Placed Order:'))
-            print(f'Order Key: {combinedOrderKey}')
-            print(white(f'Order Price: {combinedOrderPrice}'))
-            print(f'Order Response: {orderResponse}')
-            print(' ')
+                    combinedOrderPrice = float(combinedOrder['premium']) / float(combinedOrder['principal'])
+                    combinedOrderKey = combinedOrder['key'].hex()
+                    apiOrder = order(combinedOrderKey)
+
+                    # print order info
+                    print(green('Placed Order:'))
+                    print(f'Order Key: {combinedOrderKey}')
+                    print(white(f'Order Price: {combinedOrderPrice}'))
+                    print(f'Order Response: {orderResponse}')
+                    print(' ')
+
+                    # mark the order as "used"
+                    usedOrderKeys.append(baseOrderKey)   
+
+                    # append the placed order to the list
+                    newOrders.append(combinedOrder)
+                    newOrderKeys.append(combinedOrderKey)
 
         return (newOrders, newOrderKeys)
 
