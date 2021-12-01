@@ -364,7 +364,8 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
         return (newOrders, newOrderKeys)
 
-        
+
+# TODO: add json storage for orders to allow user to recover position from crashes
 underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
 maturity = float(1662089767)
 decimals = float(18)
