@@ -381,9 +381,6 @@ PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
 provider = Web3.HTTPProvider("https://red-icy-surf.rinkeby.quiknode.pro/0cbdd13f2a541b199f1fb70ecc0481d9c452ae01/")
 vendor = W3(provider, PUBLIC_KEY)
 
-
-
-
 start()
 orderKeys = []
 orders = []
