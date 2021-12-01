@@ -274,12 +274,11 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
             print(white(f'Order Key: {queuedOrderKeys[i]}'))
             orderPrice = float(queuedOrders[i]['premium']) / float(queuedOrders[i]['principal'])
             print(f'Order Price: {orderPrice}')
-            print(queuedOrders[i]['exit'])
             orderExit = queuedOrders[i]['exit']
             if orderExit == True:
-                orderType = "sell nTokens"
+                orderType = "Sell nTokens"
             else:
-                orderType = "buy nTokens"
+                orderType = "Buy nTokens"
             print(f'Order Type: {orderType}')
             print(' ')
         usedOrderKeys = []
