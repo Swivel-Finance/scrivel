@@ -149,9 +149,11 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
     queuedOrderKeys = []
     queuedOrderSignatures = []
     queuedOrders = []
+
     if len(orders) != len(orderKeys):
         print('Error: Order count does not match key count')
         exit(1)
+
     if initializor == 0:
         initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     else:
@@ -280,7 +282,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
             else:
                 orderType = "Buy nTokens"
             print(f'Order Type: {orderType}')
-            print(' ')
+
         usedOrderKeys = []
         # iterate through the orders
         for i in range (0, len(queuedOrderKeys)):
@@ -366,6 +368,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
 
 # TODO: add json storage for orders to allow user to recover position from crashes
+# TODO: add exception handling and proper error messages
 underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
 maturity = float(1662089767)
 decimals = float(18)
