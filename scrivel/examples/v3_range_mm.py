@@ -175,7 +175,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
             newExpiry = float(time.time()) + expiryLength
             principalDiff = float(orders[i]['meta']['principalAvailable']) - float(returnedOrder['meta']['principalAvailable'])
 
-            # determine if the order has been filled, and if it is large enough to place again
+            # determine if the order has been filled, and if it is large enough to queue again
             if returnedOrder['meta']['principalAvailable'] != orders[i]['meta']['principalAvailable'] and (principalDiff >= (float(orders[i]['order']['principal']) * .05)):
 
                 # adjust for time difference
@@ -192,7 +192,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
                 orderType = orders[i]['order']['exit']
 
-                # determine order type and place the new order
+                # determine order type and create the new order
                 if orderType == True:
                     reversedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(principalDiff), premium=int(premiumDiff), expiry=int(newExpiry))
                     signature = vendor.sign_order(reversedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")     
@@ -202,7 +202,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     signature = vendor.sign_order(reversedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")     
                     signature = "0x"+signature
 
-                # append the reversed order to the list
+                # append the reversed order to the queue
                 queuedOrders.append(reversedOrder)
                 queuedOrderSignatures.append(signature)
                 queuedOrderKeys.append(reversedOrder['key'].hex())
@@ -224,19 +224,20 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     replacedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=orderType, principal=int(replacedPrincipal), premium=int(recplacedPremium), expiry=int(newExpiry))
                     signature = vendor.sign_order(replacedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
                     signature = "0x"+signature
-                    
+
+                    # append the replaced order to the queue
+                    queuedOrders.append(replacedOrder)
+                    queuedOrderSignatures.append(signature)
+                    queuedOrderKeys.append(replacedOrder['key'].hex())
+
                     # print order info
                     print(blue('Queued (replaced) Order:'))
                     print(f'Order Key: {replacedOrder["key"].hex()}')
                     print(white(f'Order Price: {compoundAdjustedPrice}'))
                     print(' ')
                     
-                    # append the replaced order to the list
-                    queuedOrders.append(replacedOrder)
-                    queuedOrderSignatures.append(signature)
-                    queuedOrderKeys.append(replacedOrder['key'].hex())
 
-            # if the order has not been filled, adjust for time difference and place a new order at the same rate and principal
+            # if the order has not been filled, adjust for time difference and queue a new order at the same rate and principal
             else:
                 # adjust for time difference
                 timeDiff = maturity - time.time()
@@ -259,7 +260,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 signature = vendor.sign_order(duplicateOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
                 signature = "0x"+signature
 
-                # append the duplicate order to the list
+                # append the duplicate order to the queue
                 queuedOrders.append(duplicateOrder)
                 queuedOrderSignatures.append(signature)
                 queuedOrderKeys.append(duplicateOrder['key'].hex())
@@ -294,7 +295,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
             combinedPremium = float(baseOrder['premium'])
             combined = False
 
-            # if the order has not already been combined or placed with another order
+            # if the order has not already been combined with another order
             if baseOrderKey not in usedOrderKeys:
                 # iterate through the orders again to find orders that can be combined with the current order
                 for j in range (0, len(queuedOrderKeys)):
@@ -302,11 +303,8 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     if baseOrderKey != queuedOrderKeys[j]:
                         queuedOrderPrice = queuedOrders[j]['premium'] / queuedOrders[j]['principal']
                         baseOrderPrice = baseOrder['premium'] / baseOrder['principal']
-
-                        # if the two orders are within .005 of each other
-                        if abs(queuedOrderPrice - baseOrderPrice) <= .00025:
-                            # and the orderTypes are the same, combine the orders
-                            if queuedOrders[j]['exit'] == baseOrder['exit']:
+                        # if the two orders are within .005 of each other and the orderTypes are the same, combine the orders
+                        if abs(queuedOrderPrice - baseOrderPrice) <= .00025 and queuedOrders[j]['exit'] == baseOrder['exit']:
                                 # add the amounts to the combined order 
                                 combinedPrincipal += float(queuedOrders[j]['principal'])
                                 combinedPremium += float(queuedOrders[j]['premium'])
