@@ -206,7 +206,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 queuedOrderKeys.append(reversedOrder['key'].hex())
 
                 # print order info
-                print(red('New (reversed) Order:'))
+                print(red('Queued (reversed) Order:'))
                 print(f'Order Key: {reversedOrder["key"].hex()}')
                 print(white(f'Order Price: {compoundAdjustedPrice}'))
                 print(' ')
@@ -224,7 +224,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     signature = "0x"+signature
                     
                     # print order info
-                    print(blue('Replaced Order:'))
+                    print(blue('Queued (replaced) Order:'))
                     print(f'Order Key: {replacedOrder["key"].hex()}')
                     print(white(f'Order Price: {compoundAdjustedPrice}'))
                     print(' ')
@@ -263,7 +263,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 queuedOrderKeys.append(duplicateOrder['key'].hex())
 
                 # print order info
-                print(yellow('New (duplicated) Order:'))
+                print(yellow('Queued (duplicated) Order:'))
                 print(f'Order Key: {duplicateOrder["key"].hex()}')
                 print(white(f'Order Price: {compoundAdjustedPrice}'))
                 print(' ')
@@ -288,9 +288,11 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
             baseOrder = queuedOrders[i]
             baseOrderKey = queuedOrderKeys[i]
             baseOrderSignature = queuedOrderSignatures[i]
+
             combinedPrincipal = float(baseOrder['principal'])
             combinedPremium = float(baseOrder['premium'])
             combined = False
+
             # if the order has not already been combined or placed with another order
             if baseOrderKey not in usedOrderKeys:
                 # iterate through the orders again to find orders that can be combined with the current order
@@ -299,7 +301,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     if baseOrderKey != queuedOrderKeys[j]:
                         queuedOrderPrice = queuedOrders[j]['premium'] / queuedOrders[j]['principal']
                         baseOrderPrice = baseOrder['premium'] / baseOrder['principal']
-                        print(f'Queued Order: {queuedOrderPrice}  Base Order: {baseOrderPrice}')
+
                         # if the two orders are within .005 of each other
                         if abs(queuedOrderPrice - baseOrderPrice) <= .00025:
                             # and the orderTypes are the same, combine the orders
@@ -317,14 +319,14 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
                                 # set combined marker
                                 combined = True
-                print(combined)                
+                           
                 # if the order was not combined with any others, place the order
                 if combined == False:
                     orderResponse = limit_order(stringify(baseOrder), baseOrderSignature)
                     apiOrder = order(baseOrderKey)          
                     
                     # print order info
-                    print(cyan('Placed Duplicate Order:'))
+                    print(green('Placed Duplicate Order:'))
                     print(f'Order Key: {baseOrderKey}')
                     print(white(f'Order Price: {apiOrder["meta"]["price"]}'))
                     print(f'Order Response: {orderResponse}')
@@ -371,19 +373,20 @@ amount = float(10000)
 upperRate = float(18)
 lowerRate = float(3)
 numTicks = int(3)
-expiryLength = float(60)
+expiryLength = float(300)
 network = "rinkeby"
 compoundRateLean = float(1)
 PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
-start()
 
 provider = Web3.HTTPProvider("https://red-icy-surf.rinkeby.quiknode.pro/0cbdd13f2a541b199f1fb70ecc0481d9c452ae01/")
 vendor = W3(provider, PUBLIC_KEY)
 
+
+
+
+start()
 orderKeys = []
 orders = []
-
-
 initializor = 0
 
 loop = True
