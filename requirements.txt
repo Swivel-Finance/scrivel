@@ -36,7 +36,7 @@ pyrsistent==0.18.0
 requests==2.26.0
 rlp==2.0.1
 six==1.16.0
-swivel==0.1.0
+swivel==2.1.0
 toolz==0.11.1
 typing-extensions==3.10.0.2
 urllib3==1.26.7

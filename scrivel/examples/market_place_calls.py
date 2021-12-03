@@ -59,7 +59,8 @@ print(yellow('DAI Market maturing on: ') + blue(str(DAI_MATURITY)) + cyan(str(ma
 c_token_address = call(market_place.c_token_address(DAI_UNDERLYING, DAI_MATURITY))
 print(yellow('DAI Market Compound token address: ') + blue(c_token_address))
 
-matured = call(market_place.mature(DAI_UNDERLYING, DAI_MATURITY))
+# markets are considered mature when their maturityRate > 0 (maturity rate is index 3 in the list of 4)
+matured = market[3] > 0
 print(yellow('DAI Market matured? ') + red(str(matured)))
 
 # return the console to normal

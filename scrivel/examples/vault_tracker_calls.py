@@ -59,8 +59,9 @@ print(cyan('VaultTracker Compound token address: ') + green(c_token_address))
 swivel_address = call(tracker.swivel())
 print(cyan('Swivel Contract address associated with this Vault: ') + green(swivel_address))
 
-matured = call(tracker.matured())
-print(cyan('Vault matured? ') + red(str(matured)))
+# considered matured if maturityRate > 0
+rate = call(tracker.maturity_rate())
+print(cyan('Vault matured? ') + red(str(rate > 0)))
 
 maturity = call(tracker.maturity())
 print(cyan('Vault maturity ') + green(str(maturity)))
