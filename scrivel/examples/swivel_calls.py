@@ -47,13 +47,13 @@ print(white('Swivel contract at ') + blue(swivel.address) + white(' successfully
 admin_address = call(swivel.admin())
 print(white('MarketPlace admin address: ') + blue(admin_address))
 
-name = call(swivel.NAME())
+name = call(swivel.name())
 print(white('Name: ') + magenta(name))
 
-verz = call(swivel.VERSION())
+verz = call(swivel.version())
 print(white('Version: ') + magenta(verz))
 
-hold = call(swivel.HOLD())
+hold = call(swivel.hold())
 print(white('Holding period imposed on admin token withdrawals: ') + magenta(str(hold)))
 
 dom = call(swivel.domain())
@@ -62,10 +62,10 @@ print(white('EIP712 Domain: ') + magenta(dom.hex()))
 m_place = call(swivel.market_place())
 print(white('MarketPlace Contract associated with this Swivel deployment: ') + magenta(m_place))
 
-fees1 = call(swivel.fenominator(0))
-fees2 = call(swivel.fenominator(1))
-fees3 = call(swivel.fenominator(2))
-fees4 = call(swivel.fenominator(3))
+fees1 = call(swivel.feenominators(0))
+fees2 = call(swivel.feenominators(1))
+fees3 = call(swivel.feenominators(2))
+fees4 = call(swivel.feenominators(3))
 print(white('Fee structure for this deployment: ') + magenta(str((fees1, fees2, fees3, fees4))))
 
 stop()

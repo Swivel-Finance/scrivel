@@ -19,7 +19,7 @@ def new_params(**kwargs):
 
     return params
 
-def compoundCTokens(n):
+def compound_c_tokens(n):
     """Given an underlying, return the current compound price"""
     # Comment out when no longer using Rinkeby
 
@@ -36,7 +36,7 @@ def compoundCTokens(n):
     return resp.json()
 
 # Rinkeby network no longer supported by the Compound API
-def underlyingCompoundRate(u, n):
+def underlying_compound_rate(u, n):
     """Return the current compound token price"""
     cTokens = compoundCTokens(n)
     # Comment out when no longer using Rinkeby
@@ -45,7 +45,7 @@ def underlyingCompoundRate(u, n):
         if c['underlying_address'] == u:
             return float(c['supply_rate']['value'])
 
-def invalidateOrder(u, m, k):
+def invalidate_order(u, m, k):
     """Given an order key, invalidate it"""
 
     route = swivel_api_route.format('orders/{}')
