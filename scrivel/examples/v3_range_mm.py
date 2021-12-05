@@ -89,17 +89,17 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         tickOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=True, principal=int(principal), premium=int(premium), expiry=int(expiry))
         tickOrderPrice = premium/principal
 
-        signature = vendor.sign_order(tickOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
-        signature = "0x"+signature
+        signature = vendor.sign_order(tickOrder, 4, "0x4ccD4C002216f08218EdE1B13621faa80CecfC98")
+        signature = signature
 
         orderResponse = limit_order(stringify(tickOrder), signature)
         # store order and key
         orderKey = tickOrder['key'].hex()
         apiOrder = order(orderKey)
-        orderKeys.append(orderKey)
+
         orders.append(apiOrder)
 
-        print(red('Upper Order #'+str(i+1)))
+        print(red('Sell Order #'+str(i+1)))
         print(white(f'Order Price: {tickOrderPrice}'))
         print(f'Order Key: {orderKey}')
         print(f'Order Response: {orderResponse}')
@@ -122,20 +122,18 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         tickOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(principal), premium=int(premium), expiry=int(expiry))
         tickOrderPrice = premium/principal
 
-        signature = vendor.sign_order(tickOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
-        signature = "0x"+signature
+        signature = vendor.sign_order(tickOrder, 4, "0x4ccD4C002216f08218EdE1B13621faa80CecfC98")
+        signature = signature
 
         orderResponse = limit_order(stringify(tickOrder), signature)
-
+        # store order and key
         orderKey = tickOrder['key'].hex()
-        orderKeys.append(orderKey)
-
         apiOrder = order(orderKey)
         orders.append(apiOrder)
 
-        print(green('Lower Order #'+str(i+1)))
+        print(green('Buy Order #'+str(i+1)))
         print(white(f'Order Price: {tickOrderPrice}'))
-        print(f'Lower Key: {orderKey}')
+        print(f'Order Key: {orderKey}')
         print(f'Order Response: {orderResponse}')
         print(' ')
 
@@ -145,14 +143,8 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
     print(datetime.datetime.utcfromtimestamp(int(time.time())).strftime('%Y-%m-%d %H:%M:%S'))
     print(' ')
     newOrders = []
-    newOrderKeys = []
-    queuedOrderKeys = []
     queuedOrderSignatures = []
     queuedOrders = []
-
-    if len(orders) != len(orderKeys):
-        print('Error: Order count does not match key count')
-        exit(1)
 
     if initializor == 0:
         initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
@@ -165,11 +157,8 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
         print(str(compoundRateDiff*100)+'%')
 
         # For every order in the provided range, check if it has been filled at all. If it has, place a reversed order at the same price (similar to uniswap v3)
-        for i in range (0, len(orderKeys)):
-            orderKey = orderKeys[i]
-            if orderKey != orders[i]['order']['key']:
-                print('Error: Order key does not match order')
-                exit(1)
+        for i in range (0, len(orders)):
+            orderKey = orders[i]['order']['key']
 
             returnedOrder = order(orderKey)
             newExpiry = float(time.time()) + expiryLength
@@ -195,17 +184,16 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 # determine order type and create the new order
                 if orderType == True:
                     reversedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(principalDiff), premium=int(premiumDiff), expiry=int(newExpiry))
-                    signature = vendor.sign_order(reversedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")     
-                    signature = "0x"+signature
+                    signature = vendor.sign_order(reversedOrder, 4, "0x4ccD4C002216f08218EdE1B13621faa80CecfC98")     
+                    signature = signature
                 else:
                     reversedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=True, principal=int(principalDiff), premium=int(premiumDiff), expiry=int(newExpiry))
-                    signature = vendor.sign_order(reversedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")     
-                    signature = "0x"+signature
+                    signature = vendor.sign_order(reversedOrder, 4, "0x4ccD4C002216f08218EdE1B13621faa80CecfC98")     
+                    signature = signature
 
                 # append the reversed order to the queue
                 queuedOrders.append(reversedOrder)
                 queuedOrderSignatures.append(signature)
-                queuedOrderKeys.append(reversedOrder['key'].hex())
 
                 # print order info
                 print(red('Queued (reversed) Order:'))
@@ -222,13 +210,12 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     recplacedPremium = replacedPrincipal * compoundAdjustedPrice
                     
                     replacedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=orderType, principal=int(replacedPrincipal), premium=int(recplacedPremium), expiry=int(newExpiry))
-                    signature = vendor.sign_order(replacedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
-                    signature = "0x"+signature
+                    signature = vendor.sign_order(replacedOrder, 4, "0x4ccD4C002216f08218EdE1B13621faa80CecfC98")
+                    signature = signature
 
                     # append the replaced order to the queue
                     queuedOrders.append(replacedOrder)
                     queuedOrderSignatures.append(signature)
-                    queuedOrderKeys.append(replacedOrder['key'].hex())
 
                     # print order info
                     print(blue('Queued (replaced) Order:'))
@@ -257,13 +244,12 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 orderVault = orders[i]['order']['vault']
 
                 duplicateOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=orderVault, exit=orderExit, principal=int(duplicatePrincipal), premium=int(duplicatePremium), expiry=int(newExpiry))
-                signature = vendor.sign_order(duplicateOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
-                signature = "0x"+signature
+                signature = vendor.sign_order(duplicateOrder, 4, "0x4ccD4C002216f08218EdE1B13621faa80CecfC98")
+                signature = signature
 
                 # append the duplicate order to the queue
                 queuedOrders.append(duplicateOrder)
                 queuedOrderSignatures.append(signature)
-                queuedOrderKeys.append(duplicateOrder['key'].hex())
 
                 # print order info
                 print(yellow('Queued (duplicated) Order:'))
@@ -275,18 +261,19 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
         print(blue('Queued Orders:'))
         for i in range(len(queuedOrders)):
             orderExit = queuedOrders[i]['exit']
+            orderKey = "0x..." + queuedOrders[i]['key'].hex()[-4:]
             if orderExit == True:
                 orderType = "Sell nTokens"
             else:
                 orderType = "Buy nTokens"
-            orderPrice = float(queuedOrders[i]['premium']) / float(queuedOrders[i]['principal'])
-            print(white(f'{i}. Type: {orderType}   Order Key: {queuedOrderKeys[i]}   Order Price: {orderPrice}'))
+            orderPrice = round(float(queuedOrders[i]['premium']) / float(queuedOrders[i]['principal']),6)
+            print(white(f'{i}. Type: {orderType}   Order Key: {orderKey}   Order Price: {orderPrice}'))
 
         usedOrderKeys = []
         # iterate through the orders
-        for i in range (0, len(queuedOrderKeys)):
+        for i in range (0, len(queuedOrders)):
             baseOrder = queuedOrders[i]
-            baseOrderKey = queuedOrderKeys[i]
+            baseOrderKey = queuedOrders[i]['key']
             baseOrderSignature = queuedOrderSignatures[i]
 
             combinedPrincipal = float(baseOrder['principal'])
@@ -296,9 +283,9 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
             # if the order has not already been combined with another order
             if baseOrderKey not in usedOrderKeys:
                 # iterate through the orders again to find orders that can be combined with the current order
-                for j in range (0, len(queuedOrderKeys)):
+                for j in range (0, len(queuedOrders)):
                     # ensure not comparing to self
-                    if baseOrderKey != queuedOrderKeys[j]:
+                    if baseOrderKey != queuedOrders[j]['key']:
                         queuedOrderPrice = queuedOrders[j]['premium'] / queuedOrders[j]['principal']
                         baseOrderPrice = baseOrder['premium'] / baseOrder['principal']
                         # if the two orders are within .005 of each other and the orderTypes are the same, combine the orders
@@ -306,13 +293,13 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                                 # add the amounts to the combined order 
                                 combinedPrincipal += float(queuedOrders[j]['principal'])
                                 combinedPremium += float(queuedOrders[j]['premium'])
-                                
+                                usedOrderKey = queuedOrders[j]['key']
                                 # mark the orders that were combined as "used"
-                                usedOrderKeys.append(queuedOrderKeys[j])                         
+                                usedOrderKeys.append(usedOrderKey)                         
 
                                 # print used order info
-                                print(magenta(f'Used Order: {queuedOrderKeys[j]}'))
-                                print(white(f'Combined Orders: {queuedOrderKeys[j]} and {baseOrderKey}'))
+                                print(magenta(f'Combined Orders: {usedOrderKey} and {baseOrderKey}'))
+                                print(white(f'Used Order: {usedOrderKey}'))
 
                                 # set combined marker
                                 combined = True
@@ -320,26 +307,26 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 # if the order was not combined with any others, place the order
                 if combined == False:
                     orderResponse = limit_order(stringify(baseOrder), baseOrderSignature)
-                    apiOrder = order(baseOrderKey)          
+                    apiOrder = order(baseOrderKey)  
+                    orderKey = baseOrderKey.hex()
                     
                     # print order info
                     print(green('Placed Duplicate Order:'))
-                    print(f'Order Key: {baseOrderKey}')
+                    print(f'Order Key: {orderKey}')
                     print(white(f'Order Price: {apiOrder["meta"]["price"]}'))
                     print(f'Order Response: {orderResponse}')
                     print(' ')
 
                     # append the placed order to the list
                     newOrders.append(apiOrder)
-                    newOrderKeys.append(baseOrderKey)
 
                     # mark the order as "used"
                     usedOrderKeys.append(baseOrderKey)    
                 else:
                     # create and place the combined order
                     combinedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=baseOrder['exit'], principal=int(combinedPrincipal), premium=int(combinedPremium), expiry=int(newExpiry))
-                    signature = vendor.sign_order(combinedOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
-                    signature = "0x"+signature
+                    signature = vendor.sign_order(combinedOrder, 4, "0x4ccD4C002216f08218EdE1B13621faa80CecfC98")
+                    signature = signature
                     orderResponse = limit_order(stringify(combinedOrder), signature)
 
                     combinedOrderPrice = float(combinedOrder['premium']) / float(combinedOrder['principal'])
@@ -358,15 +345,14 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
                     # append the placed order to the list
                     newOrders.append(apiOrder)
-                    newOrderKeys.append(combinedOrderKey)
 
-        return (newOrders, newOrderKeys)
+        return (newOrders)
 
 
 # TODO: add json storage for orders to allow user to recover position from crashes
 # TODO: add exception handling and proper error messages
 underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
-maturity = float(1662089767)
+maturity = float(1669957199)
 decimals = float(18)
 amount = float(10000)
 upperRate = float(18)
@@ -381,7 +367,6 @@ provider = Web3.HTTPProvider("https://red-icy-surf.rinkeby.quiknode.pro/0cbdd13f
 vendor = W3(provider, PUBLIC_KEY)
 
 start()
-orderKeys = []
 orders = []
 initializor = 0
 
@@ -389,8 +374,7 @@ loop = True
 while loop == True:
     result = rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     if initializor != 0:
-        orders = result[0]
-        orderKeys = result[1]
+        orders = result
         print(len(orders))
     initializor += 1
     compoundRate = underlyingCompoundRate(underlying, network)
