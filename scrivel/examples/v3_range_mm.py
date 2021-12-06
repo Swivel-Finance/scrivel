@@ -276,7 +276,6 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
             baseOrder = queuedOrders[i]
             baseOrderKey = queuedOrders[i]['key']
             baseOrderKey = baseOrderKey.hex()
-            print(f'Base Order Key: {baseOrderKey}')
             baseOrderSignature = queuedOrderSignatures[i]
 
             combinedPrincipal = float(baseOrder['principal'])
