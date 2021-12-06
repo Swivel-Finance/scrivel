@@ -275,6 +275,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
         for i in range (0, len(queuedOrders)):
             baseOrder = queuedOrders[i]
             baseOrderKey = queuedOrders[i]['key']
+            baseOrderKey = baseOrderKey.hex()
             print(f'Base Order Key: {baseOrderKey}')
             baseOrderSignature = queuedOrderSignatures[i]
 
@@ -286,16 +287,19 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
             if baseOrderKey not in usedOrderKeys:
                 # iterate through the orders again to find orders that can be combined with the current order
                 for j in range (0, len(queuedOrders)):
+
+                    queuedOrder = queuedOrders[j]
+                    queuedOrderKey = queuedOrders[j]['key'].hex()
                     # ensure not comparing to self
-                    if baseOrderKey != queuedOrders[j]['key']:
-                        queuedOrderPrice = queuedOrders[j]['premium'] / queuedOrders[j]['principal']
+                    if baseOrderKey != queuedOrderKey:
+                        queuedOrderPrice = queuedOrder['premium'] / queuedOrder['principal']
                         baseOrderPrice = baseOrder['premium'] / baseOrder['principal']
                         # if the two orders are within .005 of each other and the orderTypes are the same, combine the orders
-                        if abs(queuedOrderPrice - baseOrderPrice) <= .00025 and queuedOrders[j]['exit'] == baseOrder['exit']:
+                        if abs(queuedOrderPrice - baseOrderPrice) <= .00025 and queuedOrder['exit'] == baseOrder['exit']:
                                 # add the amounts to the combined order 
-                                combinedPrincipal += float(queuedOrders[j]['principal'])
-                                combinedPremium += float(queuedOrders[j]['premium'])
-                                usedOrderKey = queuedOrders[j]['key']
+                                combinedPrincipal += float(queuedOrder['principal'])
+                                combinedPremium += float(queuedOrder['premium'])
+                                usedOrderKey = queuedOrderKey
                                 # mark the orders that were combined as "used"
                                 usedOrderKeys.append(usedOrderKey)                         
 
