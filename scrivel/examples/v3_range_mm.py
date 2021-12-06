@@ -267,15 +267,13 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
             else:
                 orderType = "Buy nTokens"
             orderPrice = round(float(queuedOrders[i]['premium']) / float(queuedOrders[i]['principal']),6)
-            orderNum = i+1
-            print(white(f'{orderNum}. Type: {orderType}   Order Key: {orderKey}   Order Price: {orderPrice}'))
+            print(white(f'{i}. Type: {orderType}   Order Key: {orderKey}   Order Price: {orderPrice}'))
 
         usedOrderKeys = []
         # iterate through the orders
         for i in range (0, len(queuedOrders)):
             baseOrder = queuedOrders[i]
             baseOrderKey = queuedOrders[i]['key']
-            print(f'Base Order Key: {baseOrderKey}')
             baseOrderSignature = queuedOrderSignatures[i]
 
             combinedPrincipal = float(baseOrder['principal'])
@@ -309,10 +307,11 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 # if the order was not combined with any others, place the order
                 if combined == False:
                     orderResponse = limit_order(stringify(baseOrder), baseOrderSignature)
-                    orderKey = baseOrderKey
-                    apiOrder = order(orderKey)  
+                    apiOrder = order(baseOrderKey)  
+                    orderKey = baseOrderKey.hex()
+                    
                     # print order info
-                    print(green('Placed Order:'))
+                    print(green('Placed Duplicate Order:'))
                     print(f'Order Key: {orderKey}')
                     print(white(f'Order Price: {apiOrder["meta"]["price"]}'))
                     print(f'Order Response: {orderResponse}')
@@ -322,7 +321,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     newOrders.append(apiOrder)
 
                     # mark the order as "used"
-                    usedOrderKeys.append(orderKey)    
+                    usedOrderKeys.append(baseOrderKey)    
                 else:
                     # create and place the combined order
                     combinedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=baseOrder['exit'], principal=int(combinedPrincipal), premium=int(combinedPremium), expiry=int(newExpiry))
@@ -356,10 +355,10 @@ underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa"
 maturity = float(1669957199)
 decimals = float(18)
 amount = float(10000)
-upperRate = float(8.75)
-lowerRate = float(3.75)
+upperRate = float(18)
+lowerRate = float(3)
 numTicks = int(3)
-expiryLength = float(100)
+expiryLength = float(300)
 network = "rinkeby"
 compoundRateLean = float(1)
 PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
