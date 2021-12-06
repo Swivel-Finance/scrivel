@@ -269,7 +269,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
             orderPrice = round(float(queuedOrders[i]['premium']) / float(queuedOrders[i]['principal']),6)
             orderNum = i+1
             print(white(f'{orderNum}. Type: {orderType}   Order Key: {orderKey}   Order Price: {orderPrice}'))
-
+        print('')
         usedOrderKeys = []
         # iterate through the orders
         for i in range (0, len(queuedOrders)):
