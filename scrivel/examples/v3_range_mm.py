@@ -218,7 +218,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     queuedOrderSignatures.append(signature)
 
                     # print order info
-                    print(blue('Queued (replaced) Order:'))
+                    print(cyan('Queued (replaced) Order:'))
                     print(f'Order Key: {replacedOrder["key"].hex()}')
                     print(white(f'Order Price: {compoundAdjustedPrice}'))
                     print(' ')
@@ -258,7 +258,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 print(' ')
         
         # print queued orders
-        print(blue('Queued Orders:'))
+        print(magenta('Queued Orders:'))
         for i in range(len(queuedOrders)):
             orderExit = queuedOrders[i]['exit']
             orderKey = "0x..." + queuedOrders[i]['key'].hex()[-4:]
