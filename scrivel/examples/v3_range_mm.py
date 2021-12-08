@@ -300,10 +300,13 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                                 combinedPremium += float(queuedOrder['premium'])
                                 usedOrderKey = queuedOrderKey
                                 # mark the orders that were combined as "used"
-                                usedOrderKeys.append(usedOrderKey)                         
+                                usedOrderKeys.append(usedOrderKey)
+                                
+                                printedUsedOrderKey = "0x..." + usedOrderKey[-4:]                     
+                                printedBaseOrderKey = "0x..." + baseOrderKey[-4:]  
 
                                 # print used order info
-                                print(magenta(f'Combined Orders: {usedOrderKey} and {baseOrderKey}'))
+                                print(magenta(f'Combined Orders: {printedUsedOrderKey} and {printedBaseOrderKey}'))
                                 print(white(f'Used Order: {usedOrderKey}'))
 
                                 # set combined marker
@@ -362,7 +365,7 @@ amount = float(10000)
 upperRate = float(8.75)
 lowerRate = float(3.75)
 numTicks = int(3)
-expiryLength = float(100)
+expiryLength = float(300)
 network = "rinkeby"
 compoundRateLean = float(1)
 PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
