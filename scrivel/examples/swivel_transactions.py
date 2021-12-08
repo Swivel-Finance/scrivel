@@ -43,39 +43,39 @@ start()
 print(magenta('Swivel contract at ') + white(swivel.address) + magenta(' successfully wrapped'))
 
 # get a specific order to fill / cancel
-api_order = order('0xb0b92dff11480b108d04a69fc0ca6ba27c279b982205d762b0ba7da843652748')
+# api_order = order('<specific order here>')
 # orders from the api are "stringified", use the parse helper to prepare one for use with H.O.C methods
-parsed = parse(api_order['order'])
+# parsed = parse(api_order['order'])
 # the signature and other meta properties are available...
-sig = api_order['meta']['signature']
-print(white(sig))
+# sig = api_order['meta']['signature']
+# print(white(sig))
 
 # contract abi type tuple[] expectation is actually dict[] (or a tuple of dicts)
 
 # NOTE: assure you have exported PRIVATE_KEY to this terminal session
 
-orders = (parsed, )
-amounts = (150000000, )
-sigs = (sig, )
+# orders = (parsed, )
+# amounts = (150000000, )
+# sigs = (sig, )
 
 # use the vendor.send convenience method to sign a transaction offline and broadcast it
 # first, however, include the appropriate tx_opts (from will be added for you by the vendor)
-tx_opts = { 'chainId': 4 }
+# tx_opts = { 'chainId': 4 }
 
 # all of swivel's H.O.C methods return a tuple that consists of (web3_transactable, tx_options).
 # many helpers (call, transact, send etc..) expect this tuple as an argument. However, you will often
 # want the args yourself first to do other things
-txable, opts = swivel.initiate(orders, amounts, sigs, opts=tx_opts)
+# txable, opts = swivel.initiate(orders, amounts, sigs, opts=tx_opts)
 # you can then pass them as a tuple of 2 to whichever method expects it...
 
 # you can omit 'gas' from tx_opts and allow web3 to estimate the gas for you. of course, you can
 # include 'gas' and any other valid `transaction` properties manually. if you would like to see
 # the gas estimate (and gas price) before hand use the swivel vendor to do so
-gas_estimate, gas_price = vendor.estimate_gas((txable, opts))
+# gas_estimate, gas_price = vendor.estimate_gas((txable, opts))
 
 # interestingly the gas estimate and gas price are _already_ present in that produced dictionary
-print(white('Built Tx gas estimate: ') + magenta(str(gas_estimate)))
-print(white('Built Tx gas price: ') + magenta(str(gas_price)))
+# print(white('Built Tx gas estimate: ') + magenta(str(gas_estimate)))
+# print(white('Built Tx gas price: ') + magenta(str(gas_price)))
 
 # the vendor.send method expects the args tuple from any H.O.C transactional method them like so
 # NOTE: commented out to prevent spamming the contract

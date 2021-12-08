@@ -54,14 +54,14 @@ my_orders = orders(DAI_UNDERLYING, DAI_MATURITY, PUB_KEY)
 print(white('Active Orders by maker: ') + blue(str(my_orders)))
 
 # use a specific order key to get that order via the order helper
-api_order = order('0x3a9586f0dc571d330f0b014e5fbd618e4c169e294a3aeb7a3cdf1ea7c53e7496')
+# api_order = order('<order key here>')
 
 # orders from the api are "stringified", use the parse helper to prepare one for use with H.O.C methods
-parsed = parse(api_order['order'])
-print(white('Parsed order: ') + blue(str(parsed)))
+# parsed = parse(api_order['order'])
+# print(white('Parsed order: ') + blue(str(parsed)))
 # the signature and other meta properties are available...
-api_order_signature = api_order['meta']['signature']
-print(white('API Order signature: ') + blue(api_order_signature))
+# api_order_signature = api_order['meta']['signature']
+# print(white('API Order signature: ') + blue(api_order_signature))
 
 # a user may view orders that are not active by specifiying a status (see helpers/http non_active_order_status)
 # NOTE: at present these will be included with active orders, this is slated to change in an upcoming API version...
