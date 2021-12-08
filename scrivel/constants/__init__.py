@@ -1,16 +1,14 @@
-# HTTP_PROVIDER = 'https://red-icy-surf.rinkeby.quiknode.pro/0cbdd13f2a541b199f1fb70ecc0481d9c452ae01/'
-HTTP_PROVIDER = 'https://eth-rinkeby.alchemyapi.io/v2/AwYxbvAxMM33PVBRZViVjSygPhb_NiN-'
+HTTP_PROVIDER = '<your http provider here>'
 
-# WS_PROVIDER = 'wss://red-icy-surf.rinkeby.quiknode.pro/0cbdd13f2a541b199f1fb70ecc0481d9c452ae01/'
-WS_PROVIDER = 'wss://eth-rinkeby.alchemyapi.io/v2/AwYxbvAxMM33PVBRZViVjSygPhb_NiN-'
+WS_PROVIDER = '<your websocket provider here>'
 
-PUB_KEY = '0x7111F9Aeb2C1b9344EC274780dc9e3806bdc60Ef'
+PUB_KEY = '<your public key here>'
 
-MARKET_PLACE_ADDRESS = '0x9fa54f942D8b8e992501952C3e6E67F1A42595b8'
-SWIVEL_ADDRESS = '0x4ccD4C002216f08218EdE1B13621faa80CecfC98'
+MARKET_PLACE_ADDRESS = '<deployed MarketPlace Contract address here>'
+SWIVEL_ADDRESS = '<deployed Swivel Contract address here>'
 
 # an active market pair
-DAI_UNDERLYING = '0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa'
-DAI_MATURITY = 1669957199
+DAI_UNDERLYING = '<active DAI market underlying token address here>'
+DAI_MATURITY = 0 # <maturity timestamp (unix epoch in seconds) of the above DAI market here>
 # this is the vault address associated with the above market
-VAULT_ADDRESS = '0xaEC3322CE4092a45b3B1B999c79B9F780E057BA5'
+VAULT_ADDRESS = '<vault address of the above active market here>'
