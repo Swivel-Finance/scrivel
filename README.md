@@ -12,6 +12,7 @@ Scripting the Swivel Finance Protocol with Python
 
 ### psa
 We suggest you create a virtual environment for this and every python project. 
+Regardless of your environment, your `PRIVATE_KEY` must be set as an environment variable.
 
 #### assure you have python available
 This is a python project, i'm just going to assume you have a python available. If not, do that first.
