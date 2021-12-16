@@ -360,9 +360,9 @@ numTicks = int(3) # The number of liquidity ticks to split your amount into
 expiryLength = float(600) # How often orders should be refreshed (in seconds) 
 compoundRateLean = float(1) # How much your quote should change when Compound’s rate varies (e.g. 1 = 1:1 change in price) 
 
-PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
 
-provider = Web3.HTTPProvider("<YOUR PROVIDER KEY>")
+PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
+provider = Web3.HTTPProvider("<YOUR_PROVIDER_KEY_HERE>")
 vendor = W3(provider, PUBLIC_KEY)
 
 if networkString == "mainnet":
@@ -371,6 +371,9 @@ if networkString == "mainnet":
 elif networkString == "rinkeby":
     network = 4
     swivelAddress = "0x4ccD4C002216f08218EdE1B13621faa80CecfC98"
+elif networkString == "kovan":
+    network = 42
+    swivelAddress = "0x301292f76885b5a20c7dbd0e06F093E9D4e5fA3F"
 else:
     print("Invalid network")
     exit(1)
