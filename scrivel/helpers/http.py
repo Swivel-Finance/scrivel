@@ -38,7 +38,7 @@ def compound_c_tokens(n):
 # Rinkeby network no longer supported by the Compound API
 def underlying_compound_rate(u, n):
     """Return the current compound token price"""
-    cTokens = compoundCTokens(n)
+    cTokens = compound_c_tokens(n)
     # Comment out when no longer using Rinkeby
     u = "0x6b175474e89094c44da98b954eedeac495271d0f"
     for c in cTokens['cToken']:
