@@ -15,7 +15,7 @@ from scrivel.helpers.http import (
     last_trade,
     limit_order,
     order,
-    underlyingCompoundRate,
+    underlying_compound_rate,
 )
 
 from scrivel.helpers.colors import(
@@ -151,7 +151,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
         initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     else:
         # store new compound rate and establish difference
-        newCompoundRate = underlyingCompoundRate(underlying, maturity)
+        newCompoundRate = underlying_compound_rate(underlying, maturity)
         compoundRateDiff = (newCompoundRate - compoundRate) / compoundRate
 
         print('Compound Rate Variance:')
@@ -306,6 +306,6 @@ while loop == True:
         orderKeys = result[1]
         print(len(orders))
     initializor += 1
-    compoundRate = underlyingCompoundRate(underlying, network)
+    compoundRate = underlying_compound_rate(underlying, network)
     time.sleep(expiryLength)
 stop()
