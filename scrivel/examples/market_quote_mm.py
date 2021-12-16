@@ -51,7 +51,7 @@ def simplestMarketMake(underlying, maturity, range, amount, expiryLength):
 
     lowerOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(lowerPrincipal), premium=int(lowerPremium), expiry=int(expiry))
 
-    provider = Web3.HTTPProvider("https://red-icy-surf.rinkeby.quiknode.pro/0cbdd13f2a541b199f1fb70ecc0481d9c452ae01/")
+    provider = Web3.HTTPProvider("<YOUR PROVIDER KEY>")
 
     vendor = W3(provider, PUBLIC_KEY)
 
