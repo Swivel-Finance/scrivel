@@ -30,13 +30,13 @@ from scrivel.helpers.colors import(
     magenta,
 )
 
-def fetchPrice(underlying, maturity) -> float:
-    trade = last_trade(underlying, maturity)
+def fetchPrice(underlying, maturity, network) -> float:
+    trade = last_trade(underlying, maturity, network)
     return trade['price']
 
 def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength):
     # establish the "market price"
-    price = fetchPrice(underlying, math.trunc(maturity))
+    price = fetchPrice(underlying, math.trunc(maturity), network)
     print('Current Price:')
     print(price)
     price = float(price)
@@ -91,10 +91,10 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
 
         signature = vendor.sign_order(tickOrder, network, swivelAddress)
 
-        orderResponse = limit_order(stringify(tickOrder), signature)
+        orderResponse = limit_order(stringify(tickOrder), signature, network)
         # store order and key
         orderKey = tickOrder['key'].hex()
-        apiOrder = order(orderKey)
+        apiOrder = order(orderKey, network)
 
         orders.append(apiOrder)
 
@@ -122,10 +122,10 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
 
         signature = vendor.sign_order(tickOrder, network, swivelAddress)
 
-        orderResponse = limit_order(stringify(tickOrder), signature)
+        orderResponse = limit_order(stringify(tickOrder), signature, network)
         # store order and key
         orderKey = tickOrder['key'].hex()
-        apiOrder = order(orderKey)
+        apiOrder = order(orderKey, network)
         orders.append(apiOrder)
 
         print(green('Buy Order #'+str(i+1)))
@@ -145,7 +145,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
         initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     else:
         # store new compound rate and establish difference
-        newCompoundRate = underlying_compound_rate(underlying, maturity)
+        newCompoundRate = underlying_compound_rate(underlying)
         compoundRateDiff = (newCompoundRate - compoundRate) / compoundRate
 
         print('Compound Rate Variance:')
@@ -155,7 +155,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
         for i in range (0, len(orders)):
             orderKey = orders[i]['order']['key']
 
-            returnedOrder = order(orderKey)
+            returnedOrder = order(orderKey, network)
             newExpiry = float(time.time()) + expiryLength
             principalDiff = float(orders[i]['meta']['principalAvailable']) - float(returnedOrder['meta']['principalAvailable'])
 
@@ -231,7 +231,6 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 duplicatePremium = duplicatePrincipal * compoundAdjustedPrice
 
                 orderExit = orders[i]['order']['exit']
-                orderVault = orders[i]['order']['vault']
 
                 duplicateOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=orderExit, principal=int(duplicatePrincipal), premium=int(duplicatePremium), expiry=int(newExpiry))
                 signature = vendor.sign_order(duplicateOrder, network, swivelAddress)
@@ -303,9 +302,9 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                            
                 # if the order was not combined with any others, place the order
                 if combined == False:
-                    orderResponse = limit_order(stringify(baseOrder), baseOrderSignature)
+                    orderResponse = limit_order(stringify(baseOrder), baseOrderSignature, network)
                     orderKey = baseOrderKey
-                    apiOrder = order(orderKey)  
+                    apiOrder = order(orderKey, network)  
                     # print order info
                     print(green('Placed Order:'))
                     print(f'Order Key: {orderKey}')
@@ -322,11 +321,11 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     combinedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=baseOrder['exit'], principal=int(combinedPrincipal), premium=int(combinedPremium), expiry=int(newExpiry))
                     signature = vendor.sign_order(combinedOrder, network, swivelAddress)
                     
-                    orderResponse = limit_order(stringify(combinedOrder), signature)
+                    orderResponse = limit_order(stringify(combinedOrder), signature, network)
 
                     combinedOrderPrice = float(combinedOrder['premium']) / float(combinedOrder['principal'])
                     combinedOrderKey = combinedOrder['key'].hex()
-                    apiOrder = order(combinedOrderKey)
+                    apiOrder = order(combinedOrderKey, network)
 
                     # print order info
                     print(cyan('Placed Combined Order:'))
@@ -347,22 +346,22 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 # TODO: add exception handling and proper error messages
 
 # Market
-underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa" # The underlying token address
-maturity = float(1669957199) # The Swivel market maturity in unix
+underlying = "0x4F96Fe3b7A6Cf9725f59d353F723c1bDb64CA6Aa" # The underlying token address
+maturity = float(1671157528) # The Swivel market maturity in unix
 decimals = float(18) # The decimals of the underlying token
-networkString = "rinkeby"
+networkString = "kovan"
 
 # Position
 amount = float(10000) # The amount of nTokens to use market-making
-upperRate = float(13) # The highest rate at which to quote 
-lowerRate = float(4) # The lowest rate at which to quote 
+upperRate = float(5) # The highest rate at which to quote 
+lowerRate = float(1) # The lowest rate at which to quote 
 numTicks = int(3) # The number of liquidity ticks to split your amount into
-expiryLength = float(600) # How often orders should be refreshed (in seconds) 
+expiryLength = float(300) # How often orders should be refreshed (in seconds) 
 compoundRateLean = float(1) # How much your quote should change when Compound’s rate varies (e.g. 1 = 1:1 change in price) 
 
 
 PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
-provider = Web3.HTTPProvider("<YOUR_PROVIDER_KEY_HERE>")
+provider = Web3.HTTPProvider("<YOUR_PROVIDER_KEY>")
 vendor = W3(provider, PUBLIC_KEY)
 
 if networkString == "mainnet":
@@ -388,6 +387,6 @@ while loop == True:
         orders = result
         print(len(orders))
     initializor += 1
-    compoundRate = underlying_compound_rate(underlying, network)
+    compoundRate = underlying_compound_rate(underlying)
     time.sleep(expiryLength)
 stop()
