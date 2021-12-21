@@ -10,18 +10,18 @@
 # scrivel
 Scripting the Swivel Finance Protocol with Python
 
-### psa
+### PSA
 We suggest you create a virtual environment for this and every python project. 
 Regardless of your environment, your `PRIVATE_KEY` must be set as an environment variable.
 
-#### assure you have python available
+#### Install/ensure compatable python version
 This is a python project, i'm just going to assume you have a python available. If not, do that first.
 Scrivel expects at least a Python version of 3.7.3
 
-#### assure you have pip available
+#### Assure you have pip available
 `which pip`. Depending on your system it may be aliased with ...3 so, `which pip3`. If not present install it.
 
-#### with virtualenv
+#### With virtualenv
 Once you have pip available use `pip install --upgrade virtualenv` (sudo it if you must...).
 
 Now you are free to place the virtual environment for this project anywhere you want. This author uses a `~/python/` top level directory
