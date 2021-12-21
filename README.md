@@ -7,7 +7,7 @@
                 -=:___________/    (luk at de snaek)    
 ```
 
-# scrivel
+# Scrivel
 Scripting the Swivel Finance Protocol with Python
 
 ### PSA
