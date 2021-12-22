@@ -11,8 +11,7 @@
 Scripting the Swivel Finance Protocol with Python
 
 ### PSA
-We suggest you create a virtual environment for this and every python project. 
-Regardless of your environment, your `PRIVATE_KEY` must be set as an environment variable.
+We suggest you create a virtual environment for this and every python project.
 
 #### Install/ensure compatable python version
 This is a python project, i'm just going to assume you have a python available. If not, do that first.
@@ -47,6 +46,10 @@ For example if you followed the path above
     #!/home/<your_user_name>/python/scrivel/bin/python
 
 If not, just make it match wherever you put it.
+
+### private key
+If you are performing transactions via the Swivel.py Vendor a private key is expected to be available in the shell environment as `PRIVATE_KEY`.
+This used to sign offline, your private key is never exposed or broadcast in any way.
 
 #### Constants
 You'll need to modify the constants located in `/scrivel/constants/__init__.py`:
