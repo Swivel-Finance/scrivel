@@ -34,12 +34,12 @@ With the env made, source it.
 
 Now you can move to installing things...
 
-## installation
+## Installation
 Clone the repo, cd into the rood dir, (activate your virtual env if you have not) then
 
     pip install -r requirements.txt
 
-### before you run the examples
+### Before you run the examples
 Each of the files in `/scrivel/examples` needs its `shebang` modified to point to the python executable you created with virtualenv.
 For example if you followed the path above
     
@@ -47,7 +47,7 @@ For example if you followed the path above
 
 If not, just make it match wherever you put it.
 
-### private key
+### Private key
 If you are performing transactions via the Swivel.py Vendor a private key is expected to be available in the shell environment as `PRIVATE_KEY`.
 This used to sign offline, your private key is never exposed or broadcast in any way.
 
@@ -63,7 +63,7 @@ You'll need to modify the constants located in `/scrivel/constants/__init__.py`:
 * DAI_MATURITY: (int) Maturity timestap (unix epoch in seconds) for the above active DAI market
 * VAULT_ADDRESS: (string) Address of the vault associated with the above active DAI market
 
-##### note on the above DAI market
+##### Note on the above DAI market
 As an example, you could use the addresses from the currently deployed contracts on Rinkeby:
 
     DAI_UNDERLYING = '0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa'
@@ -73,10 +73,10 @@ As an example, you could use the addresses from the currently deployed contracts
 This is just one example market, it could, of course, be any other active market. USDC, etc... Feel free to make
 any constants you want for others obviously.
 
-## run the examples
+## Run the examples
 The example files can then be run by (assuming you are in the repo root dir)
 
     python scrivel/examples/<foo>_<bar>.py
 
-# todo
+# Todo
 Profit.
