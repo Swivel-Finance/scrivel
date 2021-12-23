@@ -259,9 +259,9 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                         print(green('Queued (' + typeString + ') Order:'))
 
                     print(f'Order Key: {replacedOrder["key"].hex()}')
-                    print(white(f'Order Price: {compoundAdjustedPrice}\n'))
+                    print(white(f'Order Price: {compoundAdjustedPrice}'))
                     principalString = str(replacedPrincipal/10**decimals)
-                    print(f'Order Amount: {principalString} nTokens')
+                    print(f'Order Amount: {principalString} nTokens\n')
                     
 
             # if the order has not been filled, adjust for time difference and queue a new order at the same rate and principal
@@ -295,9 +295,9 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 # print order info
                 print(yellow('Queued duplicate (' + typeString + ') Order:'))
                 print(f'Order Key: {duplicateOrder["key"].hex()}')
-                print(white(f'Order Price: {compoundAdjustedPrice}\n'))
+                print(white(f'Order Price: {compoundAdjustedPrice}'))
                 principalString = str(duplicatePrincipal/10**decimals)
-                print(f'Order Amount: {principalString} nTokens')
+                print(f'Order Amount: {principalString} nTokens\n')
         
         # print queued orders
         print(magenta('Queued Orders:'))
