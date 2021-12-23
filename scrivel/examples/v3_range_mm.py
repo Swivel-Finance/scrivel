@@ -209,7 +209,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
                 orderType = orders[i]['order']['exit']
 
-                print(magenta('Reversing a Filled Order...'))
+                print(magenta('Reversing An Orders Filled Volume...'))
 
                 # determine order type and create the new order
                 if orderType == True:
@@ -234,7 +234,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 print(f'Order Key: {reversedOrder["key"].hex()}')
                 print(white(f'Order Price: {compoundAdjustedPrice}'))
                 principalString = str(principalDiff/10**decimals)
-                print(f'Order Amount: {principalString} nTokens')
+                print(f'Order Amount: {principalString} nTokens\n')
 
                 # if the order is completely filled (or 95% filled), ignore it, otherwise replace the remaining order volume
                 if float(returnedOrder['meta']['principalAvailable']) <= (float(orders[i]['order']['principal']) * .05):
@@ -252,7 +252,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     queuedOrderSignatures.append(signature)
 
                     # print order info
-                    print(cyan('Replacing Remaining order volume...'))
+                    print(cyan('Replacing An Orders Unfilled Volume...'))
                     if orderType == True:
                         print(red('Queued (' + typeString + ') Order:'))
                     else:
@@ -429,11 +429,11 @@ networkString = "rinkeby"
 
 # Position
 amount = float(10000) # The amount of nTokens to use market-making
-upperRate = float(9) # The highest rate at which to quote 
-lowerRate = float(6.75) # The lowest rate at which to quote 
-numTicks = int(3) # The number of liquidity ticks to split your amount into
-expiryLength = float(300) # How often orders should be refreshed (in seconds) 
+upperRate = float(8.75) # The highest rate at which to quote 
+lowerRate = float(7) # The lowest rate at which to quote 
+numTicks = int(3) # The number of liquidity ticks to split your amount into (Per side)
 compoundRateLean = float(1) # How much your quote should change when Compound’s rate varies (e.g. 1 = 1:1 change in price) 
+expiryLength = float(300) # How often orders should be refreshed (in seconds) 
 
 PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
 provider = Web3.HTTPProvider("<YOUR_PROVIDER_KEY>")
