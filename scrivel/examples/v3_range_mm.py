@@ -463,5 +463,14 @@ while loop == True:
         print(len(orders))
     initializor += 1
     compoundRate = underlying_compound_rate(underlying)
-    time.sleep(expiryLength)
+
+    countdownRuns = int(expiryLength/60)
+    printsRemaining = countdownRuns
+    # print time remaining for each countdown run
+    for i in range (0, countdownRuns):
+        timeRemaining = printsRemaining * 60
+        printsRemaining = printsRemaining - 1
+        print(cyan(f'{timeRemaining} Seconds Until Orders Are Refreshed...'))
+        print(white(' '))
+        time.sleep(30)
 stop()
