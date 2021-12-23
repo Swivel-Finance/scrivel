@@ -37,6 +37,10 @@ def fetchPrice(underlying, maturity, network) -> float:
 def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength):
     # establish the "market price"
     price = fetchPrice(underlying, math.trunc(maturity), network)
+
+    # establish the mid-range rate
+    midRate = (upperRate + lowerRate) / 2
+
     print('Current Price:')
     print(price)
     price = float(price)
@@ -46,35 +50,37 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     # annualize price to get rate
     timeDiff = maturity - time.time()
     timeModifier = (timeDiff / 31536000)
+
     marketRate = price / timeModifier * 100
     print('Market Rate:')
     print(marketRate)
+    print(' ')
+    print('Your Mid Rate:')
+    print(midRate)
+    print(' ')
 
     # determine upper / lower ranges
-    upperDiff = upperRate - marketRate
-    lowerDiff = marketRate - lowerRate
+    upperDiff = upperRate - midRate
+    lowerDiff = marketRate - midRate
     print('Upper Diff:')
     print(upperDiff)
     print('Lower Diff:')
     print(lowerDiff)
+
     if lowerDiff < 0 or upperDiff < 0:
-        print('Error: Market rates are too high or low for range')
+        print('Error: Your rates are too high or low for a real range')
         exit(1)
 
     # determine how spread each tick is
     upperTickDiff = upperDiff / numTicks
     lowerTickDiff = lowerDiff / numTicks
-    print('Upper Tick Diff:')
-    print(upperTickDiff)
-    print('Lower Tick Diff:')
-    print(lowerTickDiff)
 
     # set initial order expiries
     expiry = float(time.time()) + expiryLength
 
     for i in range(numTicks):
         # determine specific tick's rate and price
-        tickRate = marketRate + (upperTickDiff * (i+1))
+        tickRate = midRate + (upperTickDiff * (i+1))
         tickPrice = tickRate * timeModifier / 100
 
         exponent = numTicks-i
@@ -105,7 +111,7 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
 
 
     for i in range(numTicks):
-        tickRate = marketRate - (lowerTickDiff * (i+1))
+        tickRate = midRate - (lowerTickDiff * (i+1))
         tickPrice = tickRate * timeModifier / 100
 
         exponent = numTicks-i
@@ -146,10 +152,27 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
     else:
         # store new compound rate and establish difference
         newCompoundRate = underlying_compound_rate(underlying)
-        compoundRateDiff = (newCompoundRate - compoundRate) / compoundRate
+        compoundRateDiff = math.truncate(((newCompoundRate - compoundRate) / compoundRate), 8)
 
-        print('Compound Rate Variance:')
-        print(str(compoundRateDiff*100)+'%')
+        # establish the impact that time should make
+        timeDiff = maturity - time.time()
+        timeModifier = expiryLength / timeDiff
+
+        print('Compound Rate Has Changed:')
+        print(str(compoundRateDiff*100)+'%\n')
+
+        verb = ''
+
+        if compoundRateDiff > 0:
+            verb = 'increased'
+        elif compoundRateDiff < 0:
+            verb = 'decreased'
+        print('This has ' + verb + 'nToken prices:')
+        print(str(compoundRateDiff*100*compoundRateLean)+'%\n')
+
+        print(str(expiryLength)+' have passed since the last quote refresh.')
+        print('This has reduced nToken prices:')
+        print(str(timeModifier*100)+'%\n')
 
         # For every order in the provided range, check if it has been filled at all. If it has, place a reversed order at the same price (similar to uniswap v3)
         for i in range (0, len(orders)):
@@ -163,9 +186,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
             if returnedOrder['meta']['principalAvailable'] != orders[i]['meta']['principalAvailable'] and (principalDiff >= (float(orders[i]['order']['principal']) * .05)):
 
                 # adjust for time difference
-                timeDiff = maturity - time.time()
                 price = float(orders[i]['meta']['price'])
-                timeModifier = expiryLength / timeDiff
                 newPrice = price - (price * timeModifier)
 
                 # adjust for changes in underlying compound rate
@@ -217,8 +238,6 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
             # if the order has not been filled, adjust for time difference and queue a new order at the same rate and principal
             else:
                 # adjust for time difference
-                timeDiff = maturity - time.time()
-                timeModifier = expiryLength / timeDiff
                 price = float(orders[i]['meta']['price'])
                 newPrice = price - (price * timeModifier)
 
@@ -356,7 +375,7 @@ amount = float(10000) # The amount of nTokens to use market-making
 upperRate = float(5) # The highest rate at which to quote 
 lowerRate = float(1) # The lowest rate at which to quote 
 numTicks = int(3) # The number of liquidity ticks to split your amount into
-expiryLength = float(300) # How often orders should be refreshed (in seconds) 
+expiryLength = float(100) # How often orders should be refreshed (in seconds) 
 compoundRateLean = float(1) # How much your quote should change when Compound’s rate varies (e.g. 1 = 1:1 change in price) 
 
 
