@@ -9,6 +9,11 @@ import time
 import datetime
 from web3 import Web3
 
+def truncate(number, digits) -> float:
+    stepper = 10.0 ** digits
+    return math.trunc(stepper * number) / stepper
+
+
 from scrivel.helpers.orders import new_order, stringify
 
 from scrivel.helpers.http import (
@@ -61,7 +66,7 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
 
     # determine upper / lower ranges
     upperDiff = upperRate - midRate
-    lowerDiff = marketRate - midRate
+    lowerDiff = midRate - lowerRate
     print('Upper Diff:')
     print(upperDiff)
     print('Lower Diff:')
@@ -105,8 +110,11 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         orders.append(apiOrder)
 
         print(red('Sell Order #'+str(i+1)))
-        print(white(f'Order Price: {tickOrderPrice}'))
-        print(f'Order Key: {orderKey}')
+        print(white(f'Order Key: {orderKey}'))
+        print(f'Order Price: {tickOrderPrice}')
+        print(f'Order Rate: {tickRate}')
+        principalString = str(principal/10**decimals)
+        print(f'Order Amount: {principalString} nTokens')
         print(f'Order Response: {orderResponse}\n')
 
 
@@ -135,8 +143,11 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         orders.append(apiOrder)
 
         print(green('Buy Order #'+str(i+1)))
-        print(white(f'Order Price: {tickOrderPrice}'))
-        print(f'Order Key: {orderKey}')
+        print(white(f'Order Key: {orderKey}'))
+        print(f'Order Price: {tickOrderPrice}')
+        print(f'Order Rate: {tickRate}')
+        principalString = str(principal/10**decimals)
+        print(f'Order Amount: {principalString} nTokens')
         print(f'Order Response: {orderResponse}\n')
 
 
@@ -152,14 +163,14 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
     else:
         # store new compound rate and establish difference
         newCompoundRate = underlying_compound_rate(underlying)
-        compoundRateDiff = math.truncate(((newCompoundRate - compoundRate) / compoundRate), 8)
+        compoundRateDiff = truncate(((newCompoundRate - compoundRate) / compoundRate), 8)
 
         # establish the impact that time should make
         timeDiff = maturity - time.time()
         timeModifier = expiryLength / timeDiff
 
         print('Compound Rate Has Changed:')
-        print(str(compoundRateDiff*100)+'%\n')
+        print(str(compoundRateDiff*100)+'%')
 
         verb = ''
 
@@ -167,8 +178,9 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
             verb = 'increased'
         elif compoundRateDiff < 0:
             verb = 'decreased'
-        print('This has ' + verb + 'nToken prices:')
-        print(str(compoundRateDiff*100*compoundRateLean)+'%\n')
+
+        print('This change has ' + verb + 'nToken prices:')
+        print(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%'+ ' based on your lean rate \n')
 
         print(str(expiryLength)+' have passed since the last quote refresh.')
         print('This has reduced nToken prices:')
@@ -197,24 +209,34 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
                 orderType = orders[i]['order']['exit']
 
+                print(magenta('Reversing a Filled Order...'))
+
                 # determine order type and create the new order
                 if orderType == True:
                     reversedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(principalDiff), premium=int(premiumDiff), expiry=int(newExpiry))
                     signature = vendor.sign_order(reversedOrder, network, swivelAddress)     
+                    reversedTypeString = 'Buy'
+                    typeString = 'Sell'
+                    print(green('Queued ('+reversedTypeString+') Order:'))
+
                 else:
                     reversedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=True, principal=int(principalDiff), premium=int(premiumDiff), expiry=int(newExpiry))
-                    signature = vendor.sign_order(reversedOrder, network, swivelAddress)     
+                    signature = vendor.sign_order(reversedOrder, network, swivelAddress)    
+                    reversedTypeString = 'Sell' 
+                    typeString = 'Buy'
+                    print(red('Queued ('+reversedTypeString+') Order:'))
 
                 # append the reversed order to the queue
                 queuedOrders.append(reversedOrder)
                 queuedOrderSignatures.append(signature)
 
                 # print order info
-                print(red('Queued (reversed) Order:'))
                 print(f'Order Key: {reversedOrder["key"].hex()}')
-                print(white(f'Order Price: {compoundAdjustedPrice}\n'))
+                print(white(f'Order Price: {compoundAdjustedPrice}'))
+                principalString = str(principalDiff/10**decimals)
+                print(f'Order Amount: {principalString} nTokens')
 
-                # if the order is completely filled (or 95% filled), ignore it, otherwise replace the order
+                # if the order is completely filled (or 95% filled), ignore it, otherwise replace the remaining order volume
                 if float(returnedOrder['meta']['principalAvailable']) <= (float(orders[i]['order']['principal']) * .05):
                     pass
                 else:
@@ -230,9 +252,16 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     queuedOrderSignatures.append(signature)
 
                     # print order info
-                    print(cyan('Queued (replaced) Order:'))
+                    print(cyan('Replacing Remaining order volume...'))
+                    if orderType == True:
+                        print(red('Queued (' + typeString + ') Order:'))
+                    else:
+                        print(green('Queued (' + typeString + ') Order:'))
+
                     print(f'Order Key: {replacedOrder["key"].hex()}')
                     print(white(f'Order Price: {compoundAdjustedPrice}\n'))
+                    principalString = str(replacedPrincipal/10**decimals)
+                    print(f'Order Amount: {principalString} nTokens')
                     
 
             # if the order has not been filled, adjust for time difference and queue a new order at the same rate and principal
@@ -251,6 +280,11 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
                 orderExit = orders[i]['order']['exit']
 
+                # establish order typestring
+                if orderExit == True:
+                    typeString = "Sell"
+                else:
+                    typeString = "Buy"
                 duplicateOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=orderExit, principal=int(duplicatePrincipal), premium=int(duplicatePremium), expiry=int(newExpiry))
                 signature = vendor.sign_order(duplicateOrder, network, swivelAddress)
 
@@ -259,9 +293,11 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 queuedOrderSignatures.append(signature)
 
                 # print order info
-                print(yellow('Queued (duplicated) Order:'))
+                print(yellow('Queued duplicate (' + typeString + ') Order:'))
                 print(f'Order Key: {duplicateOrder["key"].hex()}')
                 print(white(f'Order Price: {compoundAdjustedPrice}\n'))
+                principalString = str(duplicatePrincipal/10**decimals)
+                print(f'Order Amount: {principalString} nTokens')
         
         # print queued orders
         print(magenta('Queued Orders:'))
@@ -313,7 +349,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                                 printedBaseOrderKey = "0x..." + baseOrderKey[-4:]  
 
                                 # print used order info
-                                print(magenta(f'Combined Orders: {printedUsedOrderKey} and {printedBaseOrderKey}'))
+                                print(magenta('Combined Orders with a price of ' + str(truncate(queuedOrderPrice,4)) + f': {printedUsedOrderKey} and {printedBaseOrderKey}'))
                                 print(white(f'Used Order: {usedOrderKey}\n'))
 
                                 # set combined marker
@@ -324,10 +360,21 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     orderResponse = limit_order(stringify(baseOrder), baseOrderSignature, network)
                     orderKey = baseOrderKey
                     apiOrder = order(orderKey, network)  
+
+                    # establish order typestring + print order type
+                    orderExit = apiOrder['order']['exit']
+                    if orderExit == True:
+                        typeString = "Sell"
+                        print(red('Placed ' + typeString + ' Order:'))
+                    else:
+                        typeString = "Buy"
+                        print(green('Placed ' + typeString + ' Order:'))
+
                     # print order info
-                    print(green('Placed Order:'))
                     print(f'Order Key: {orderKey}')
                     print(white(f'Order Price: {apiOrder["meta"]["price"]}'))
+                    principalString = str(float(apiOrder["meta"]["principalAvailable"])/10**decimals)
+                    print(f'Order Amount: {principalString} nTokens')
                     print(f'Order Response: {orderResponse}\n')
 
                     # append the placed order to the list
@@ -342,14 +389,24 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     
                     orderResponse = limit_order(stringify(combinedOrder), signature, network)
 
-                    combinedOrderPrice = float(combinedOrder['premium']) / float(combinedOrder['principal'])
+                    combinedOrderPrice = float(combinedPremium) / float(combinedPrincipal)
                     combinedOrderKey = combinedOrder['key'].hex()
                     apiOrder = order(combinedOrderKey, network)
 
+                    # establish order typestring
+                    orderExit = apiOrder['order']['exit']
+                    if orderExit == True:
+                        typeString = "Sell"
+                    else:
+                        typeString = "Buy"
+
+
                     # print order info
-                    print(cyan('Placed Combined Order:'))
+                    print(cyan('Placed Combined ' + typeString + ' Order:'))
                     print(f'Order Key: {combinedOrderKey}')
                     print(white(f'Order Price: {combinedOrderPrice}'))
+                    principalString = str(combinedPrincipal/10**decimals)
+                    print(f'Order Amount: {principalString} nTokens')
                     print(f'Order Response: {orderResponse}\n')
 
                     # mark the order as "used"
@@ -365,19 +422,18 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 # TODO: add exception handling and proper error messages
 
 # Market
-underlying = "0x4F96Fe3b7A6Cf9725f59d353F723c1bDb64CA6Aa" # The underlying token address
-maturity = float(1671157528) # The Swivel market maturity in unix
+underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa" # The underlying token address
+maturity = float(1669957199) # The Swivel market maturity in unix
 decimals = float(18) # The decimals of the underlying token
-networkString = "kovan"
+networkString = "rinkeby"
 
 # Position
 amount = float(10000) # The amount of nTokens to use market-making
-upperRate = float(5) # The highest rate at which to quote 
-lowerRate = float(1) # The lowest rate at which to quote 
+upperRate = float(9) # The highest rate at which to quote 
+lowerRate = float(6.75) # The lowest rate at which to quote 
 numTicks = int(3) # The number of liquidity ticks to split your amount into
-expiryLength = float(100) # How often orders should be refreshed (in seconds) 
+expiryLength = float(20) # How often orders should be refreshed (in seconds) 
 compoundRateLean = float(1) # How much your quote should change when Compound’s rate varies (e.g. 1 = 1:1 change in price) 
-
 
 PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
 provider = Web3.HTTPProvider("<YOUR_PROVIDER_KEY>")
@@ -385,7 +441,7 @@ vendor = W3(provider, PUBLIC_KEY)
 
 if networkString == "mainnet":
     network = 1
-    #swivelAddress = "x"
+    swivelAddress = "0x3b983B701406010866bD68331aAed374fb9f50C9"
 elif networkString == "rinkeby":
     network = 4
     swivelAddress = "0x4ccD4C002216f08218EdE1B13621faa80CecfC98"
