@@ -69,7 +69,7 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     lowerDiff = midRate - lowerRate
     print('Upper Diff:')
     print(upperDiff)
-    print('Lower Diff:')
+    print('Lower Diff:\n')
     print(lowerDiff)
 
     if lowerDiff < 0 or upperDiff < 0:
@@ -432,7 +432,7 @@ amount = float(10000) # The amount of nTokens to use market-making
 upperRate = float(9) # The highest rate at which to quote 
 lowerRate = float(6.75) # The lowest rate at which to quote 
 numTicks = int(3) # The number of liquidity ticks to split your amount into
-expiryLength = float(20) # How often orders should be refreshed (in seconds) 
+expiryLength = float(300) # How often orders should be refreshed (in seconds) 
 compoundRateLean = float(1) # How much your quote should change when Compound’s rate varies (e.g. 1 = 1:1 change in price) 
 
 PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
