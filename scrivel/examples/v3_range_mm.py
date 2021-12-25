@@ -180,7 +180,7 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         principalString = str(principal/10**decimals)
         print(f'Order Amount: {principalString} nTokens')
         print(f'Order Response: {orderResponse}\n')
-        time.sleep(.25
+        time.sleep(.25)
 
 def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength):
     print('Current Time:')
