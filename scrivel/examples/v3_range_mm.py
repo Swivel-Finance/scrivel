@@ -125,7 +125,7 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         principalString = str(principal/10**decimals)
         print(f'Order Amount: {principalString} nTokens')
         print(f'Order Response: {orderResponse}\n')
-
+        time.sleep(1.5)
 
     for i in range(numTicks):
         tickRate = midRate - (lowerTickDiff * (i+1))
@@ -168,7 +168,7 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         principalString = str(principal/10**decimals)
         print(f'Order Amount: {principalString} nTokens')
         print(f'Order Response: {orderResponse}\n')
-
+        time.sleep(1.5)
 
 def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength):
     print('Current Time:')
@@ -327,7 +327,8 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 print(white(f'Order Price: {compoundAdjustedPrice}'))
                 principalString = str(duplicatePrincipal/10**decimals)
                 print(f'Order Amount: {principalString} nTokens\n')
-        
+            time.sleep(1.5)
+
         # print queued orders
         print(magenta('Queued Orders:'))
         for i in range(len(queuedOrders)):
@@ -341,6 +342,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
             orderNum = i+1
             print(white(f'{orderNum}. Type: {orderType}   Order Key: {orderKey}   Order Price: {orderPrice}'))
         print('')
+        time.sleep(1.5)
 
         usedOrderKeys = []
         # iterate through the orders
@@ -383,11 +385,10 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
                                 # set combined marker
                                 combined = True
-                           
+                                time.sleep(1.5)     
+
                 # if the order was not combined with any others, place the order
                 if combined == False:
-
-
                     apiSuccess = False
                     while apiSuccess == False:
                         try:
@@ -472,7 +473,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
                     # append the placed order to the list
                     newOrders.append(apiOrder)
-
+            time.sleep(1.5)
         return (newOrders)
 
 
@@ -522,11 +523,11 @@ while loop == True:
     initializor += 1
     compoundRate = underlying_compound_rate(underlying)
 
-    countdownRuns = math.ceil(expiryLength/60)
+    countdownRuns = math.floor(expiryLength/30)
     printsRemaining = countdownRuns
     # print time remaining for each countdown run
     for i in range (0, countdownRuns):
-        timeRemaining = printsRemaining * 60
+        timeRemaining = printsRemaining * 30
         printsRemaining = printsRemaining - 1
         print(cyan(f'{timeRemaining} Seconds Until Orders Are Refreshed...'))
         print(white(' '))
