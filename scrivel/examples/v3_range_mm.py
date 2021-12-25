@@ -46,8 +46,8 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     # establish the mid-range rate
     midRate = (upperRate + lowerRate) / 2
 
-    print('Current Price:')
-    print(price)
+    print(cyan('Current Price:'))
+    print(white(price))
     price = float(price)
     # use 95% of allocated capital
     safeAmount = amount * .95 * 10**int(decimals)
@@ -56,22 +56,29 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     timeDiff = maturity - time.time()
     timeModifier = (timeDiff / 31536000)
 
-    marketRate = price / timeModifier * 100
-    print('Market Rate:')
-    print(marketRate)
-    print(' ')
-    print('Your Mid Rate:')
-    print(midRate)
+    marketRate = truncate((price / timeModifier * 100),8)
+    print(yellow('Market Rate:'))
+    print(white(f'{marketRate}%'))
+    print(magenta('Your Mid Rate:'))
+    print(white(f'{midRate}%'))
     print(' ')
 
     # determine upper / lower ranges
     upperDiff = upperRate - midRate
     lowerDiff = midRate - lowerRate
-    print('Upper Diff:')
-    print(upperDiff)
-    print('Lower Diff:\n')
-    print(lowerDiff)
+    lowerPrice = truncate((lowerRate * timeModifier / 100),5)
+    upperPrice = truncate((upperRate * timeModifier / 100),5)
+    midPrice = truncate((midRate * timeModifier / 100), 5)
 
+    print(red('Upper (Sell nToken) Range:'))
+    print(white(f'Rates: {midRate}% - {upperRate}%'))
+    print(f'Prices: {midPrice} - {upperPrice}')
+    print(green('Lower (Buy nToken) Range:'))
+    print(white(f'Rates: {lowerRate}% - {midRate}%'))
+    print(f'Prices: {lowerPrice} - {midPrice}\n')
+    print(cyan('--------------------------\n'))
+
+    time.sleep(1.5)
     if lowerDiff < 0 or upperDiff < 0:
         print('Error: Your rates are too high or low for a real range')
         exit(1)
@@ -125,7 +132,7 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         principalString = str(principal/10**decimals)
         print(f'Order Amount: {principalString} nTokens')
         print(f'Order Response: {orderResponse}\n')
-        time.sleep(1)
+        time.sleep(.66)
 
     for i in range(numTicks):
         tickRate = midRate - (lowerTickDiff * (i+1))
@@ -168,7 +175,7 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         principalString = str(principal/10**decimals)
         print(f'Order Amount: {principalString} nTokens')
         print(f'Order Response: {orderResponse}\n')
-        time.sleep(1)
+        time.sleep(.66)
 
 def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength):
     print('Current Time:')
@@ -328,7 +335,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 print(white(f'Order Price: {compoundAdjustedPrice}'))
                 principalString = str(duplicatePrincipal/10**decimals)
                 print(f'Order Amount: {principalString} nTokens\n')
-            time.sleep(1)
+            time.sleep(.66)
 
         # print queued orders
         print(magenta('Queued Orders:'))
@@ -343,7 +350,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
             orderNum = i+1
             print(white(f'{orderNum}. Type: {orderType}   Order Key: {orderKey}   Order Price: {orderPrice}'))
         print('')
-        time.sleep(1)
+        time.sleep(.66)
 
         usedOrderKeys = []
         # iterate through the orders
@@ -386,7 +393,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
                                 # set combined marker
                                 combined = True
-                                time.sleep(1)     
+                                time.sleep(.66)     
 
                 # if the order was not combined with any others, place the order
                 if combined == False:
@@ -411,7 +418,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                         typeString = "Buy"
                         print(green('Placed ' + typeString + ' Order:'))
                     
-                    orderPrice = apiOrder["meta"]["price"]
+                    orderPrice = float(apiOrder["meta"]["price"])
                     orderRate = truncate((orderPrice * 31536000/timeDiff),6) * 100
 
                     # print order info
@@ -469,7 +476,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
                     # append the placed order to the list
                     newOrders.append(apiOrder)
-            time.sleep(1)
+            time.sleep(.66)
         return (newOrders)
 
 
@@ -488,7 +495,7 @@ upperRate = float(8.75) # The highest rate at which to quote
 lowerRate = float(7) # The lowest rate at which to quote 
 numTicks = int(3) # The number of liquidity ticks to split your amount into (Per side)
 compoundRateLean = float(1) # How much your quote should change when Compound’s rate varies (e.g. 1 = 1:1 change in price) 
-expiryLength = float(20) # How often orders should be refreshed (in seconds) 
+expiryLength = float(300) # How often orders should be refreshed (in seconds) 
 
 PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
 provider = Web3.HTTPProvider("<YOUR_PROVIDER_KEY>")
