@@ -88,16 +88,16 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         print('Error: Your rates are too high or low for a real range')
         exit(1)
 
-    # determine how spread each tick is
-    upperTickDiff = upperDiff / numTicks
-    lowerTickDiff = lowerDiff / numTicks
+    # determine how spread each tick is (-1 in order to have prices match at mid market price)
+    upperTickDiff = upperDiff / (numTicks - 1)
+    lowerTickDiff = lowerDiff / (numTicks - 1)
 
     # set initial order expiries
     expiry = float(time.time()) + expiryLength
 
     for i in range(numTicks):
         # determine specific tick's rate and price
-        tickRate = midRate + (upperTickDiff * (i+1))
+        tickRate = midRate + (upperTickDiff * (i))
         tickPrice = tickRate * timeModifier / 100
 
         exponent = numTicks-i
@@ -140,17 +140,15 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         time.sleep(.25)
 
     for i in range(numTicks):
-        tickRate = midRate - (lowerTickDiff * (i+1))
+        tickRate = midRate - (lowerTickDiff * (i))
         tickPrice = tickRate * timeModifier / 100
 
         exponent = numTicks-i
 
-        lowerSafeAmount = safeAmount * price
+        tickAmount = safeAmount / (2 ** exponent)
 
-        amount = lowerSafeAmount / (2 ** exponent)
-
-        principal = amount / tickPrice
-        premium = amount
+        principal = tickAmount 
+        premium = tickAmount * tickPrice
 
         tickOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(principal), premium=int(premium), expiry=int(expiry))
         tickOrderPrice = premium/principal
@@ -498,6 +496,14 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
 
 
+
+
+
+
+
+
+
+
 # Market
 underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa" # The underlying token address
 maturity = float(1669957199) # The Swivel market maturity in unix
@@ -510,7 +516,7 @@ upperRate = float(8.75) # The highest rate at which to quote
 lowerRate = float(7) # The lowest rate at which to quote 
 numTicks = int(3) # The number of liquidity ticks to split your amount into (Per side)
 compoundRateLean = float(1) # How much your quote should change when Compound’s rate varies (e.g. 1 = 1:1 change in price) 
-expiryLength = float(20) # How often orders should be refreshed (in seconds) 
+expiryLength = float(300) # How often orders should be refreshed (in seconds) 
 
 PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
 provider = Web3.HTTPProvider("<YOUR_PROVIDER_KEY>")
