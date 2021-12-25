@@ -105,7 +105,16 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         orderResponse = limit_order(stringify(tickOrder), signature, network)
         # store order and key
         orderKey = tickOrder['key'].hex()
-        apiOrder = order(orderKey, network)
+
+        apiSuccess = False
+        while apiSuccess == False:
+            try:
+                apiOrder = order(orderKey, network)
+                apiSuccess = True
+            except:
+                print("Error: Failed to retrieve order from Swivel API")
+                print("Retrying in 30s...")
+                time.sleep(30)
 
         orders.append(apiOrder)
 
@@ -139,7 +148,17 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         orderResponse = limit_order(stringify(tickOrder), signature, network)
         # store order and key
         orderKey = tickOrder['key'].hex()
-        apiOrder = order(orderKey, network)
+
+        apiSuccess = False
+        while apiSuccess == False:
+            try:
+                apiOrder = order(orderKey, network)
+                apiSuccess = True
+            except:
+                print("Error: Failed to retrieve order from Swivel API")
+                print("Retrying in 30s...")
+                time.sleep(30)
+
         orders.append(apiOrder)
 
         print(green('Buy Order #'+str(i+1)))
@@ -162,7 +181,17 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
         initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     else:
         # store new compound rate and establish difference
-        newCompoundRate = underlying_compound_rate(underlying)
+
+        apiSuccess = False
+        while apiSuccess == False:
+            try:
+                newCompoundRate = underlying_compound_rate(underlying)
+                apiSuccess = True
+            except ConnectionError as e:
+                print('Error: Could not connect to Compound API')
+                print('Retrying in 30 seconds...')
+                time.sleep(30)
+
         compoundRateDiff = truncate(((newCompoundRate - compoundRate) / compoundRate), 8)
 
         # establish the impact that time should make
@@ -357,9 +386,29 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                            
                 # if the order was not combined with any others, place the order
                 if combined == False:
+
+
+                    apiSuccess = False
+                    while apiSuccess == False:
+                        try:
+                            apiOrder = order(orderKey, network)
+                            apiSuccess = True
+                        except:
+                            print("Error: Failed to retrieve order from Swivel API")
+                            print("Retrying in 30s...")
+                            time.sleep(30)
+
                     orderResponse = limit_order(stringify(baseOrder), baseOrderSignature, network)
                     orderKey = baseOrderKey
-                    apiOrder = order(orderKey, network)  
+
+                    apiSuccess = False
+                    while apiSuccess == False:
+                        try:
+                            apiOrder = order(orderKey, network)
+                            apiSuccess = True
+                        except:
+                            print("Error: Failed to retrieve order from Swivel API")
+                            print("retrying")
 
                     # establish order typestring + print order type
                     orderExit = apiOrder['order']['exit']
@@ -391,7 +440,16 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
                     combinedOrderPrice = float(combinedPremium) / float(combinedPrincipal)
                     combinedOrderKey = combinedOrder['key'].hex()
-                    apiOrder = order(combinedOrderKey, network)
+
+                    apiSuccess = False
+                    while apiSuccess == False:
+                        try:
+                            apiOrder = order(orderKey, network)
+                            apiSuccess = True
+                        except:
+                            print("Error: Failed to retrieve order from Swivel API")
+                            print("Retrying in 30s...")
+                            time.sleep(30)
 
                     # establish order typestring
                     orderExit = apiOrder['order']['exit']
@@ -433,7 +491,7 @@ upperRate = float(8.75) # The highest rate at which to quote
 lowerRate = float(7) # The lowest rate at which to quote 
 numTicks = int(3) # The number of liquidity ticks to split your amount into (Per side)
 compoundRateLean = float(1) # How much your quote should change when Compound’s rate varies (e.g. 1 = 1:1 change in price) 
-expiryLength = float(300) # How often orders should be refreshed (in seconds) 
+expiryLength = float(75) # How often orders should be refreshed (in seconds) 
 
 PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
 provider = Web3.HTTPProvider("<YOUR_PROVIDER_KEY>")
@@ -464,7 +522,7 @@ while loop == True:
     initializor += 1
     compoundRate = underlying_compound_rate(underlying)
 
-    countdownRuns = int(expiryLength/60)
+    countdownRuns = math.ceil(expiryLength/60)
     printsRemaining = countdownRuns
     # print time remaining for each countdown run
     for i in range (0, countdownRuns):
