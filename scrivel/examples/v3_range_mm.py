@@ -215,7 +215,6 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
             verb = 'increased'
             print('This change has ' + green(verb) + white('nToken prices:'))
             print(green(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%')+ white(' based on your lean rate \n'))
-
         if compoundRateDiff < 0:
             print(red(str(compoundRateDiff*100)+'%'))
             verb = 'decreased'
@@ -224,8 +223,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
         if compoundRateDiff == 0:
             print(yellow(str(compoundRateDiff*100)+'%'))
             verb = 'not'
-            print(white('This has ') + yellow(verb) + white(' impacted nToken prices:'))
-            print(yellow(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%')+ white(' based on your lean rate \n'))
+            print(white('This') + yellow(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%') + verb + white(' change does not impact nToken prices:'))
 
         
         print(str(expiryLength)+' seconds have passed since the last quote refresh.')
@@ -493,14 +491,6 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
 # TODO: add json storage for orders to allow user to recover position from crashes
 # TODO: add exception handling and proper error messages
-
-
-
-
-
-
-
-
 
 
 
