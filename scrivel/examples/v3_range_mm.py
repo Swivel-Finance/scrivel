@@ -51,6 +51,7 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     price = float(price)
     # use 95% of allocated capital
     safeAmount = amount * .95 * 10**int(decimals)
+    time.sleep(.5)
     
     # annualize price to get rate
     timeDiff = maturity - time.time()
@@ -59,9 +60,11 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     marketRate = truncate((price / timeModifier * 100),8)
     print(yellow('Market Rate:'))
     print(white(f'{marketRate}%'))
+    time.sleep(.5)
     print(magenta('Your Mid Rate:'))
     print(white(f'{midRate}%'))
     print(' ')
+    time.sleep(.5)
 
     # determine upper / lower ranges
     upperDiff = upperRate - midRate
@@ -76,9 +79,11 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     print(green('Lower (Buy nToken) Range:'))
     print(white(f'Rates: {lowerRate}% - {midRate}%'))
     print(f'Prices: {lowerPrice} - {midPrice}\n')
-    print(cyan('--------------------------\n'))
+    print(cyan('--------------------------'))
+    print(white(' '))
 
-    time.sleep(1.5)
+    blankInput = input('Press Enter to continue...\n')
+
     if lowerDiff < 0 or upperDiff < 0:
         print('Error: Your rates are too high or low for a real range')
         exit(1)
@@ -132,7 +137,7 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         principalString = str(principal/10**decimals)
         print(f'Order Amount: {principalString} nTokens')
         print(f'Order Response: {orderResponse}\n')
-        time.sleep(.66)
+        time.sleep(.25)
 
     for i in range(numTicks):
         tickRate = midRate - (lowerTickDiff * (i+1))
@@ -175,7 +180,7 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         principalString = str(principal/10**decimals)
         print(f'Order Amount: {principalString} nTokens')
         print(f'Order Response: {orderResponse}\n')
-        time.sleep(.66)
+        time.sleep(.25
 
 def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength):
     print('Current Time:')
@@ -205,23 +210,31 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
         timeDiff = maturity - time.time()
         timeModifier = expiryLength / timeDiff
 
-        print('Compound Rate Has Changed:')
-        print(str(compoundRateDiff*100)+'%')
-
         verb = ''
-
+        print('Compound\'s Rate Has Changed:')
         if compoundRateDiff > 0:
+            print(green(str(compoundRateDiff*100)+'%'))
             verb = 'increased'
-        elif compoundRateDiff < 0:
+            print('This change has ' + green(verb) + white('nToken prices:'))
+            print(green(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%')+ white(' based on your lean rate \n'))
+
+        if compoundRateDiff < 0:
+            print(red(str(compoundRateDiff*100)+'%'))
             verb = 'decreased'
+            print('This change has ' + red(verb) + white('nToken prices:'))
+            print(red(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%')+ white(' based on your lean rate \n'))
+        if compoundRateDiff == 0:
+            print(yellow(str(compoundRateDiff*100)+'%'))
+            verb = 'not'
+            print(white('This has ') + yellow(verb) + white(' impacted nToken prices:'))
+            print(yellow(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%')+ white(' based on your lean rate \n'))
 
-        print('This change has ' + verb + 'nToken prices:')
-        print(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%'+ ' based on your lean rate \n')
+        
+        print(str(expiryLength)+' seconds have passed since the last quote refresh.')
+        print('This has' + red(' reduced ') + white('nToken prices:'))
+        print(cyan(str(timeModifier*100)+'%\n'))
 
-        print(str(expiryLength)+' have passed since the last quote refresh.')
-        print('This has reduced nToken prices:')
-        print(str(timeModifier*100)+'%\n')
-        time.sleep(3)
+        time.sleep(5)
 
         # For every order in the provided range, check if it has been filled at all. If it has, place a reversed order at the same price (similar to uniswap v3)
         for i in range (0, len(orders)):
@@ -483,6 +496,8 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 # TODO: add json storage for orders to allow user to recover position from crashes
 # TODO: add exception handling and proper error messages
 
+
+
 # Market
 underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa" # The underlying token address
 maturity = float(1669957199) # The Swivel market maturity in unix
@@ -495,7 +510,7 @@ upperRate = float(8.75) # The highest rate at which to quote
 lowerRate = float(7) # The lowest rate at which to quote 
 numTicks = int(3) # The number of liquidity ticks to split your amount into (Per side)
 compoundRateLean = float(1) # How much your quote should change when Compound’s rate varies (e.g. 1 = 1:1 change in price) 
-expiryLength = float(300) # How often orders should be refreshed (in seconds) 
+expiryLength = float(20) # How often orders should be refreshed (in seconds) 
 
 PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
 provider = Web3.HTTPProvider("<YOUR_PROVIDER_KEY>")
