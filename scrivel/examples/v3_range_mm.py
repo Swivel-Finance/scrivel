@@ -102,7 +102,10 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
 
         exponent = numTicks-i
         # determine order size (martingale weighted)
-        tickAmount = safeAmount / (2 ** exponent)
+        if i == 0:
+            tickAmount = safeAmount / (2 ** exponent) / 2
+        else:
+            tickAmount = safeAmount / (2 ** exponent)
 
         # set specific order sizes
         principal = tickAmount
@@ -144,8 +147,10 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         tickPrice = tickRate * timeModifier / 100
 
         exponent = numTicks-i
-
-        tickAmount = safeAmount / (2 ** exponent)
+        if i == 0:
+            tickAmount = safeAmount / (2 ** exponent) / 2
+        else:
+            tickAmount = safeAmount / (2 ** exponent)
 
         principal = tickAmount 
         premium = tickAmount * tickPrice
@@ -199,7 +204,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 apiSuccess = True
             except ConnectionError as e:
                 print('Error: Could not connect to Compound API')
-                print('Retrying in 30 seconds...')
+                print('Retrying in 30s...')
                 time.sleep(30)
 
         compoundRateDiff = truncate(((newCompoundRate - compoundRate) / compoundRate), 8)
@@ -222,8 +227,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
             print(red(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%')+ white(' based on your lean rate \n'))
         if compoundRateDiff == 0:
             print(yellow(str(compoundRateDiff*100)+'%'))
-            verb = 'not'
-            print(white('This') + yellow(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%') + verb + white(' change does not impact nToken prices:'))
+            print(white('This ') + yellow(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%') + white(' change does') + yellow('not') + white('impact nToken prices.\n'))
 
         
         print(str(expiryLength)+' seconds have passed since the last quote refresh.')
@@ -236,7 +240,16 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
         for i in range (0, len(orders)):
             orderKey = orders[i]['order']['key']
 
-            returnedOrder = order(orderKey, network)
+            apiSuccess = False
+            while apiSuccess == False:
+                try:
+                    returnedOrder = order(orderKey, network)
+                    apiSuccess = True
+                except:
+                    print("Error: Failed to retrieve order from Swivel API")
+                    print("Retrying in 30s...")
+                    time.sleep(30)
+
             newExpiry = float(time.time()) + expiryLength
             principalDiff = float(orders[i]['meta']['principalAvailable']) - float(returnedOrder['meta']['principalAvailable'])
 
@@ -416,7 +429,8 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                             apiSuccess = True
                         except:
                             print("Error: Failed to retrieve order from Swivel API")
-                            print("retrying")
+                            print("Retrying in 30s...")
+                            time.sleep(30)
 
                     # establish order typestring + print order type
                     orderExit = apiOrder['order']['exit']
