@@ -421,7 +421,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 if combined == False:
                     orderResponse = limit_order(stringify(baseOrder), baseOrderSignature, network)
                     orderKey = baseOrderKey
-
+                    
                     apiSuccess = False
                     while apiSuccess == False:
                         try:
@@ -434,6 +434,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
                     # establish order typestring + print order type
                     orderExit = apiOrder['order']['exit']
+
                     if orderExit == True:
                         typeString = "Sell"
                         print(red('Placed ' + typeString + ' Order:'))
@@ -470,7 +471,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     apiSuccess = False
                     while apiSuccess == False:
                         try:
-                            apiOrder = order(orderKey, network)
+                            apiOrder = order(combinedOrderKey, network)
                             apiSuccess = True
                         except:
                             print("Error: Failed to retrieve order from Swivel API")
