@@ -49,8 +49,10 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     print(cyan('Current Price:'))
     print(white(price))
     price = float(price)
-    # use 95% of allocated capital
-    safeAmount = amount * .95 * 10**int(decimals)
+    # use safe allocation of allocated capital
+    safeAmount = amount * .999 * 10**int(decimals)
+    midTickAmount = safeAmount / (2 ** (numTicks+2))
+
     time.sleep(.5)
     
     # annualize price to get rate
@@ -89,13 +91,13 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         exit(1)
 
     # determine how spread each tick is (-1 in order to have prices match at mid market price)
-    upperTickDiff = upperDiff / (numTicks - 1)
-    lowerTickDiff = lowerDiff / (numTicks - 1)
+    upperTickDiff = upperDiff / (numTicks)
+    lowerTickDiff = lowerDiff / (numTicks)
 
     # set initial order expiries
     expiry = float(time.time()) + expiryLength
 
-    for i in range(numTicks):
+    for i in range(numTicks+1):
         # determine specific tick's rate and price
         tickRate = midRate + (upperTickDiff * (i))
         tickPrice = tickRate * timeModifier / 100
@@ -103,9 +105,9 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         exponent = numTicks-i
         # determine order size (martingale weighted)
         if i == 0:
-            tickAmount = safeAmount / (2 ** exponent) / 2
+            tickAmount = midTickAmount
         else:
-            tickAmount = safeAmount / (2 ** exponent)
+            tickAmount = safeAmount / (2 ** (exponent+1))
 
         # set specific order sizes
         principal = tickAmount
@@ -142,15 +144,15 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         print(f'Order Response: {orderResponse}\n')
         time.sleep(.25)
 
-    for i in range(numTicks):
+    for i in range(numTicks+1):
         tickRate = midRate - (lowerTickDiff * (i))
         tickPrice = tickRate * timeModifier / 100
 
         exponent = numTicks-i
         if i == 0:
-            tickAmount = safeAmount / (2 ** exponent) / 2
+            tickAmount = midTickAmount
         else:
-            tickAmount = safeAmount / (2 ** exponent)
+            tickAmount = safeAmount / (2 ** (exponent+1))
 
         principal = tickAmount 
         premium = tickAmount * tickPrice
@@ -517,9 +519,9 @@ networkString = "rinkeby"
 
 # Position
 amount = float(10000) # The amount of nTokens to use market-making
-upperRate = float(8.75) # The highest rate at which to quote 
-lowerRate = float(7) # The lowest rate at which to quote 
-numTicks = int(3) # The number of liquidity ticks to split your amount into (Per side)
+upperRate = float(12) # The highest rate at which to quote 
+lowerRate = float(8.5) # The lowest rate at which to quote 
+numTicks = int(3) # The number of liquidity ticks to split your amount into (Per side + 1 at market price)
 compoundRateLean = float(1) # How much your quote should change when Compound’s rate varies (e.g. 1 = 1:1 change in price) 
 expiryLength = float(300) # How often orders should be refreshed (in seconds) 
 
