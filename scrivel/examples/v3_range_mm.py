@@ -39,7 +39,7 @@ def fetchPrice(underlying, maturity, network) -> float:
     trade = last_trade(underlying, maturity, network)
     return trade['price']
 
-def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength):
+def initialPositionCreation(underlying, maturity, upperRate, lowerRate, amount, expiryLength):
     # establish the "market price"
     price = fetchPrice(underlying, math.trunc(maturity), network)
 
@@ -186,196 +186,9 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         print(f'Order Response: {orderResponse}\n')
         time.sleep(.25)
 
-def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength):
-    print('Current Time:')
-    print(datetime.datetime.utcfromtimestamp(int(time.time())).strftime('%Y-%m-%d %H:%M:%S\n'))
-    newOrders = []
-    queuedOrderSignatures = []
-    queuedOrders = []
-
-    if initializor == 0:
-        initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
-    else:
-        # store new compound rate and establish difference
-
-        apiSuccess = False
-        while apiSuccess == False:
-            try:
-                newCompoundRate = underlying_compound_rate(underlying)
-                apiSuccess = True
-            except Exception as e:
-                print('Error: Could not connect to Compound API')
-                print('Retrying in 30s...')
-                time.sleep(30)
-
-        compoundRateDiff = truncate(((newCompoundRate - compoundRate) / compoundRate), 8)
-
-        # establish the impact that time should make
-        timeDiff = maturity - time.time()
-        timeModifier = expiryLength / timeDiff
-
-        verb = ''
-        print('Compound\'s Rate Has Changed:')
-        if compoundRateDiff > 0:
-            print(green(str(compoundRateDiff*100)+'%'))
-            verb = 'increased'
-            print(white('This change has ') + green(verb) + white('nToken prices:'))
-            print(green(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%')+ white(' based on your lean rate \n'))
-        if compoundRateDiff < 0:
-            print(red(str(compoundRateDiff*100)+'%'))
-            verb = 'decreased'
-            print(white('This change has ') + red(verb) + white('nToken prices:'))
-            print(red(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%')+ white(' based on your lean rate \n'))
-        if compoundRateDiff == 0:
-            print(yellow(str(compoundRateDiff*100)+'%'))
-            print(white('This ') + yellow(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%') + white(' change does') + yellow(' not ') + white('impact nToken prices.\n'))
-
-        
-        print(str(expiryLength)+' seconds have passed since the last quote refresh.')
-        print('This has' + red(' reduced ') + white('nToken prices:'))
-        print(cyan(str(timeModifier*100)+'%\n'))
-
-        time.sleep(5)
-
-        # For every order in the provided range, check if it has been filled at all. If it has, place a reversed order at the same price (similar to uniswap v3)
-        for i in range (0, len(orders)):
-            orderKey = orders[i]['order']['key']
-
-            apiSuccess = False
-            while apiSuccess == False:
-                try:
-                    returnedOrder = order(orderKey, network)
-                    apiSuccess = True
-                except:
-                    print("Error: Failed to retrieve order from Swivel API")
-                    print("Retrying in 30s...")
-                    time.sleep(30)
-
-            newExpiry = float(time.time()) + expiryLength
-            principalDiff = float(orders[i]['meta']['principalAvailable']) - float(returnedOrder['meta']['principalAvailable'])
-
-            # determine if the order has been filled, and if it is large enough to queue again
-            if returnedOrder['meta']['principalAvailable'] != orders[i]['meta']['principalAvailable'] and (principalDiff >= (float(orders[i]['order']['principal']) * .05)):
-
-                # adjust for time difference
-                price = float(orders[i]['meta']['price'])
-                newPrice = price - (price * timeModifier)
-
-                # adjust for changes in underlying compound rate
-                compoundAdjustedImpact = newPrice * (compoundRateLean * compoundRateDiff)
-                compoundAdjustedPrice = newPrice + compoundAdjustedImpact
-
-                premiumDiff = principalDiff * compoundAdjustedPrice
-
-                orderType = orders[i]['order']['exit']
-
-                print(magenta('Reversing An Orders Filled Volume...'))
-
-                # determine order type and create the new order
-                if orderType == True:
-                    reversedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(principalDiff), premium=int(premiumDiff), expiry=int(newExpiry))
-                    signature = vendor.sign_order(reversedOrder, network, swivelAddress)     
-                    reversedTypeString = 'Buy'
-                    typeString = 'Sell'
-                    print(green('Queued ('+reversedTypeString+') Order:'))
-
-                else:
-                    reversedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=True, principal=int(principalDiff), premium=int(premiumDiff), expiry=int(newExpiry))
-                    signature = vendor.sign_order(reversedOrder, network, swivelAddress)    
-                    reversedTypeString = 'Sell' 
-                    typeString = 'Buy'
-                    print(red('Queued ('+reversedTypeString+') Order:'))
-
-                # append the reversed order to the queue
-                queuedOrders.append(reversedOrder)
-                queuedOrderSignatures.append(signature)
-
-                # print order info
-                print(f'Order Key: {reversedOrder["key"].hex()}')
-                print(white(f'Order Price: {compoundAdjustedPrice}'))
-                principalString = str(principalDiff/10**decimals)
-                print(f'Order Amount: {principalString} nTokens\n')
-
-                # if the order is completely filled (or 95% filled), ignore it, otherwise replace the remaining order volume
-                if float(returnedOrder['meta']['principalAvailable']) <= (float(orders[i]['order']['principal']) * .05):
-                    pass
-                else:
-                    # replace whatever volume has not been filled
-                    replacedPrincipal = float(returnedOrder['meta']['principalAvailable'])
-                    recplacedPremium = replacedPrincipal * compoundAdjustedPrice
-                    
-                    replacedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=orderType, principal=int(replacedPrincipal), premium=int(recplacedPremium), expiry=int(newExpiry))
-                    signature = vendor.sign_order(replacedOrder, network, swivelAddress)
-
-                    # append the replaced order to the queue
-                    queuedOrders.append(replacedOrder)
-                    queuedOrderSignatures.append(signature)
-
-                    # print order info
-                    print(cyan('Replacing An Orders Unfilled Volume...'))
-                    if orderType == True:
-                        print(red('Queued (' + typeString + ') Order:'))
-                    else:
-                        print(green('Queued (' + typeString + ') Order:'))
-
-                    print(f'Order Key: {replacedOrder["key"].hex()}')
-                    print(white(f'Order Price: {compoundAdjustedPrice}'))
-                    principalString = str(replacedPrincipal/10**decimals)
-                    print(f'Order Amount: {principalString} nTokens\n')
-                    
-
-            # if the order has not been filled, adjust for time difference and queue a new order at the same rate and principal
-            else:
-                # adjust for time difference
-                price = float(orders[i]['meta']['price'])
-                newPrice = price - (price * timeModifier)
-
-                # adjust for changes in underlying compound rate
-                compoundAdjustedImpact = newPrice * (compoundRateLean * compoundRateDiff)
-                compoundAdjustedPrice = newPrice + compoundAdjustedImpact               
-
-                # determine the new premium amount
-                duplicatePrincipal = float(orders[i]['order']['principal'])
-                duplicatePremium = duplicatePrincipal * compoundAdjustedPrice
-
-                orderExit = orders[i]['order']['exit']
-
-                # establish order typestring
-                if orderExit == True:
-                    typeString = "Sell"
-                else:
-                    typeString = "Buy"
-                duplicateOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=orderExit, principal=int(duplicatePrincipal), premium=int(duplicatePremium), expiry=int(newExpiry))
-                signature = vendor.sign_order(duplicateOrder, network, swivelAddress)
-
-                # append the duplicate order to the queue
-                queuedOrders.append(duplicateOrder)
-                queuedOrderSignatures.append(signature)
-
-                # print order info
-                print(yellow('Queued duplicate (' + typeString + ') Order:'))
-                print(f'Order Key: {duplicateOrder["key"].hex()}')
-                print(white(f'Order Price: {compoundAdjustedPrice}'))
-                principalString = str(duplicatePrincipal/10**decimals)
-                print(f'Order Amount: {principalString} nTokens\n')
-            time.sleep(.66)
-
-        # print queued orders
-        print(magenta('Queued Orders:'))
-        for i in range(len(queuedOrders)):
-            orderExit = queuedOrders[i]['exit']
-            orderKey = "0x..." + queuedOrders[i]['key'].hex()[-4:]
-            if orderExit == True:
-                orderType = "Sell nTokens"
-            else:
-                orderType = "Buy nTokens"
-            orderPrice = round(float(queuedOrders[i]['premium']) / float(queuedOrders[i]['principal']),6)
-            orderNum = i+1
-            print(white(f'{orderNum}. Type: {orderType}   Order Key: {orderKey}   Order Price: {orderPrice}'))
-        print('')
-        time.sleep(.66)
-
+def combineAndPlace(queuedOrders, queuedOrderSignatures, timeDiff):
         usedOrderKeys = []
+        newOrders = []
         # iterate through the orders
         for i in range (0, len(queuedOrders)):
             baseOrder = queuedOrders[i]
@@ -504,9 +317,213 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
             time.sleep(.66)
         return (newOrders)
 
+def adjustAndQueue(underlying, maturity, expiryLength, orders):
+
+    queuedOrders = []
+    queuedOrderSignatures = []
+
+    apiSuccess = False
+    while apiSuccess == False:
+        try:
+            newCompoundRate = underlying_compound_rate(underlying)
+            apiSuccess = True
+        except Exception as e:
+            print('Error: Could not connect to Compound API')
+            print('Retrying in 30s...')
+            time.sleep(30)
+
+    compoundRateDiff = truncate(((newCompoundRate - compoundRate) / compoundRate), 8)
+
+    # establish the impact that time should make
+    timeDiff = maturity - time.time()
+    timeModifier = expiryLength / timeDiff
+
+    verb = ''
+    print('Compound\'s Rate Has Changed:')
+    if compoundRateDiff > 0:
+        print(green(str(compoundRateDiff*100)+'%'))
+        verb = 'increased'
+        print(white('This change has ') + green(verb) + white('nToken prices:'))
+        print(green(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%')+ white(' based on your lean rate \n'))
+    if compoundRateDiff < 0:
+        print(red(str(compoundRateDiff*100)+'%'))
+        verb = 'decreased'
+        print(white('This change has ') + red(verb) + white('nToken prices:'))
+        print(red(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%')+ white(' based on your lean rate \n'))
+    if compoundRateDiff == 0:
+        print(yellow(str(compoundRateDiff*100)+'%'))
+        print(white('This ') + yellow(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%') + white(' change does') + yellow(' not ') + white('impact nToken prices.\n'))
+
+    
+    print(str(expiryLength)+' seconds have passed since the last quote refresh.')
+    print('This has' + red(' reduced ') + white('nToken prices:'))
+    print(cyan(str(timeModifier*100)+'%\n'))
+
+    time.sleep(5)
+
+    # For every order in the provided range, check if it has been filled at all. If it has, place a reversed order at the same price (similar to uniswap v3)
+    for i in range (0, len(orders)):
+        orderKey = orders[i]['order']['key']
+
+        apiSuccess = False
+        while apiSuccess == False:
+            try:
+                returnedOrder = order(orderKey, network)
+                apiSuccess = True
+            except:
+                print("Error: Failed to retrieve order from Swivel API")
+                print("Retrying in 30s...")
+                time.sleep(30)
+
+        newExpiry = float(time.time()) + expiryLength
+        principalDiff = float(orders[i]['meta']['principalAvailable']) - float(returnedOrder['meta']['principalAvailable'])
+
+        # determine if the order has been filled, and if it is large enough to queue again
+        if returnedOrder['meta']['principalAvailable'] != orders[i]['meta']['principalAvailable'] and (principalDiff >= (float(orders[i]['order']['principal']) * .05)):
+
+            # adjust for time difference
+            price = float(orders[i]['meta']['price'])
+            newPrice = price - (price * timeModifier)
+
+            # adjust for changes in underlying compound rate
+            compoundAdjustedImpact = newPrice * (compoundRateLean * compoundRateDiff)
+            compoundAdjustedPrice = newPrice + compoundAdjustedImpact
+
+            premiumDiff = principalDiff * compoundAdjustedPrice
+
+            orderType = orders[i]['order']['exit']
+
+            print(magenta('Reversing An Orders Filled Volume...'))
+
+            # determine order type and create the new order
+            if orderType == True:
+                reversedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(principalDiff), premium=int(premiumDiff), expiry=int(newExpiry))
+                signature = vendor.sign_order(reversedOrder, network, swivelAddress)     
+                reversedTypeString = 'Buy'
+                typeString = 'Sell'
+                print(green('Queued ('+reversedTypeString+') Order:'))
+
+            else:
+                reversedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=True, principal=int(principalDiff), premium=int(premiumDiff), expiry=int(newExpiry))
+                signature = vendor.sign_order(reversedOrder, network, swivelAddress)    
+                reversedTypeString = 'Sell' 
+                typeString = 'Buy'
+                print(red('Queued ('+reversedTypeString+') Order:'))
+
+            # append the reversed order to the queue
+            queuedOrders.append(reversedOrder)
+            queuedOrderSignatures.append(signature)
+
+            # print order info
+            print(f'Order Key: {reversedOrder["key"].hex()}')
+            print(white(f'Order Price: {compoundAdjustedPrice}'))
+            principalString = str(principalDiff/10**decimals)
+            print(f'Order Amount: {principalString} nTokens\n')
+
+            # if the order is completely filled (or 95% filled), ignore it, otherwise replace the remaining order volume
+            if float(returnedOrder['meta']['principalAvailable']) <= (float(orders[i]['order']['principal']) * .05):
+                pass
+            else:
+                # replace whatever volume has not been filled
+                replacedPrincipal = float(returnedOrder['meta']['principalAvailable'])
+                recplacedPremium = replacedPrincipal * compoundAdjustedPrice
+                
+                replacedOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=orderType, principal=int(replacedPrincipal), premium=int(recplacedPremium), expiry=int(newExpiry))
+                signature = vendor.sign_order(replacedOrder, network, swivelAddress)
+
+                # append the replaced order to the queue
+                queuedOrders.append(replacedOrder)
+                queuedOrderSignatures.append(signature)
+
+                # print order info
+                print(cyan('Replacing An Orders Unfilled Volume...'))
+                if orderType == True:
+                    print(red('Queued (' + typeString + ') Order:'))
+                else:
+                    print(green('Queued (' + typeString + ') Order:'))
+
+                print(f'Order Key: {replacedOrder["key"].hex()}')
+                print(white(f'Order Price: {compoundAdjustedPrice}'))
+                principalString = str(replacedPrincipal/10**decimals)
+                print(f'Order Amount: {principalString} nTokens\n')
+                
+
+        # if the order has not been filled, adjust for time difference and queue a new order at the same rate and principal
+        else:
+            # adjust for time difference
+            price = float(orders[i]['meta']['price'])
+            newPrice = price - (price * timeModifier)
+
+            # adjust for changes in underlying compound rate
+            compoundAdjustedImpact = newPrice * (compoundRateLean * compoundRateDiff)
+            compoundAdjustedPrice = newPrice + compoundAdjustedImpact               
+
+            # determine the new premium amount
+            duplicatePrincipal = float(orders[i]['order']['principal'])
+            duplicatePremium = duplicatePrincipal * compoundAdjustedPrice
+
+            orderExit = orders[i]['order']['exit']
+
+            # establish order typestring
+            if orderExit == True:
+                typeString = "Sell"
+            else:
+                typeString = "Buy"
+            duplicateOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=orderExit, principal=int(duplicatePrincipal), premium=int(duplicatePremium), expiry=int(newExpiry))
+            signature = vendor.sign_order(duplicateOrder, network, swivelAddress)
+
+            # append the duplicate order to the queue
+            queuedOrders.append(duplicateOrder)
+            queuedOrderSignatures.append(signature)
+
+            # print order info
+            print(yellow('Queued duplicate (' + typeString + ') Order:'))
+            print(f'Order Key: {duplicateOrder["key"].hex()}')
+            print(white(f'Order Price: {compoundAdjustedPrice}'))
+            principalString = str(duplicatePrincipal/10**decimals)
+            print(f'Order Amount: {principalString} nTokens\n')
+        time.sleep(.66)
+
+    # print queued orders
+    print(magenta('Queued Orders:'))
+    for i in range(len(queuedOrders)):
+        orderExit = queuedOrders[i]['exit']
+        orderKey = "0x..." + queuedOrders[i]['key'].hex()[-4:]
+        if orderExit == True:
+            orderType = "Sell nTokens"
+        else:
+            orderType = "Buy nTokens"
+        orderPrice = round(float(queuedOrders[i]['premium']) / float(queuedOrders[i]['principal']),6)
+        orderNum = i+1
+        print(white(f'{orderNum}. Type: {orderType}   Order Key: {orderKey}   Order Price: {orderPrice}'))
+    print('')
+    time.sleep(.66)
+    return (queuedOrders, queuedOrderSignatures, timeDiff)
+
+
+
+def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength):
+    print('Current Time:')
+    print(datetime.datetime.utcfromtimestamp(int(time.time())).strftime('%Y-%m-%d %H:%M:%S\n'))
+    newOrders = []
+    queuedOrderSignatures = []
+    queuedOrders = []
+
+    if initializor == 0:
+        initialPositionCreation(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
+    else:
+        # store new compound rate and establish difference
+        (queuedOrders, queuedOrderSignatures) = adjustAndQueue(underlying, maturity, expiryLength, orders)
+
+        newOrders = combineAndPlace(queuedOrders,queuedOrderSignatures, timeDiff)
+        return (newOrders)
+
+#-----------------------------------------------------------------------------------------------------------------------
+#-------------------------------------------------Position Setup-------------------------------------------------------- 
+#-----------------------------------------------------------------------------------------------------------------------
 
 # TODO: add json storage for orders to allow user to recover position from crashes
-# TODO: add exception handling and proper error messages
+# TODO: add better exception handling and proper error messages
 
 # Market
 underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa" # The underlying token address
@@ -520,7 +537,7 @@ upperRate = float(12) # The highest rate at which to quote
 lowerRate = float(8.5) # The lowest rate at which to quote 
 numTicks = int(3) # The number of liquidity ticks to split your amount into (Per side + 1 at market price)
 compoundRateLean = float(1) # How much your quote should change when Compound’s rate varies (e.g. 1 = 1:1 change in price) 
-expiryLength = float(300) # How often orders should be refreshed (in seconds) 
+expiryLength = float(30) # How often orders should be refreshed (in seconds) 
 
 PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
 provider = Web3.HTTPProvider("<YOUR_PROVIDER_KEY>")
@@ -538,19 +555,35 @@ elif networkString == "kovan":
 else:
     print("Invalid network")
     exit(1)
+
+#-----------------------------------------------------------------------------------------------------------------------
+#-------------------------------------------------Initialize------------------------------------------------------------ 
+#-----------------------------------------------------------------------------------------------------------------------
 start()
 orders = []
 initializor = 0
 
 loop = True
 while loop == True:
-    result = rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
-    if initializor != 0:
-        orders = result
-        print(len(orders))
+
+    print('Current Time:')
+    print(datetime.datetime.utcfromtimestamp(int(time.time())).strftime('%Y-%m-%d %H:%M:%S\n'))
+    queuedOrders = []
+    queuedOrderSignatures = []
+
+    if initializor == 0:
+        initialPositionCreation(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
+    else:
+        # store new compound rate and establish difference
+        (queuedOrders, queuedOrderSignatures, timeDiff) = adjustAndQueue(underlying, maturity, expiryLength, orders)
+
+        orders = combineAndPlace(queuedOrders,queuedOrderSignatures, timeDiff)
+
     initializor += 1
     compoundRate = underlying_compound_rate(underlying)
 
+
+    # sleep the expiry length
     countdownRuns = math.floor(expiryLength/30)
     printsRemaining = countdownRuns
     # print time remaining for each countdown run
