@@ -186,7 +186,7 @@ def initialPositionCreation(underlying, maturity, upperRate, lowerRate, amount, 
         print(f'Order Response: {orderResponse}\n')
         time.sleep(.25)
 
-def combineAndPlace(queuedOrders, queuedOrderSignatures, timeDiff):
+def combineAndPlace(queuedOrders, queuedOrderSignatures, timeDiff, newExpiry):
         usedOrderKeys = []
         newOrders = []
         # iterate through the orders
@@ -498,7 +498,7 @@ def adjustAndQueue(underlying, maturity, expiryLength, orders):
         print(white(f'{orderNum}. Type: {orderType}   Order Key: {orderKey}   Order Price: {orderPrice}'))
     print('')
     time.sleep(.66)
-    return (queuedOrders, queuedOrderSignatures, timeDiff)
+    return (queuedOrders, queuedOrderSignatures, timeDiff, nexExpiry)
 
 
 
@@ -525,6 +525,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 # TODO: add json storage for orders to allow user to recover position from crashes
 # TODO: add better exception handling and proper error messages
 
+
 # Market
 underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa" # The underlying token address
 maturity = float(1669957199) # The Swivel market maturity in unix
@@ -533,11 +534,11 @@ networkString = "rinkeby"
 
 # Position
 amount = float(10000) # The amount of nTokens to use market-making
-upperRate = float(12) # The highest rate at which to quote 
-lowerRate = float(8.5) # The lowest rate at which to quote 
+upperRate = float(13) # The highest rate at which to quote 
+lowerRate = float(9.5) # The lowest rate at which to quote 
 numTicks = int(3) # The number of liquidity ticks to split your amount into (Per side + 1 at market price)
 compoundRateLean = float(1) # How much your quote should change when Compound’s rate varies (e.g. 1 = 1:1 change in price) 
-expiryLength = float(30) # How often orders should be refreshed (in seconds) 
+expiryLength = float(450) # How often orders should be refreshed (in seconds) 
 
 PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
 provider = Web3.HTTPProvider("<YOUR_PROVIDER_KEY>")
@@ -574,10 +575,9 @@ while loop == True:
     if initializor == 0:
         initialPositionCreation(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     else:
-        # store new compound rate and establish difference
-        (queuedOrders, queuedOrderSignatures, timeDiff) = adjustAndQueue(underlying, maturity, expiryLength, orders)
+        (queuedOrders, queuedOrderSignatures, timeDiff, newExpiry) = adjustAndQueue(underlying, maturity, expiryLength, orders)
 
-        orders = combineAndPlace(queuedOrders,queuedOrderSignatures, timeDiff)
+        orders = combineAndPlace(queuedOrders,queuedOrderSignatures, timeDiff, nexExpiry)
 
     initializor += 1
     compoundRate = underlying_compound_rate(underlying)
