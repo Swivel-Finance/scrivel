@@ -338,7 +338,7 @@ def adjustAndQueue(underlying, maturity, expiryLength, orders):
     timeDiff = maturity - time.time()
     timeModifier = expiryLength / timeDiff
     newExpiry = float(time.time()) + expiryLength
-    
+
     verb = ''
     print('Compound\'s Rate Has Changed:')
     if compoundRateDiff > 0:
@@ -498,7 +498,7 @@ def adjustAndQueue(underlying, maturity, expiryLength, orders):
         print(white(f'{orderNum}. Type: {orderType}   Order Key: {orderKey}   Order Price: {orderPrice}'))
     print('')
     time.sleep(.66)
-    return (queuedOrders, queuedOrderSignatures, timeDiff, nexExpiry)
+    return (queuedOrders, queuedOrderSignatures, timeDiff, newExpiry)
 
 def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength):
     print('Current Time:')
@@ -522,6 +522,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
 # TODO: add json storage for orders to allow user to recover position from crashes
 # TODO: add better exception handling and proper error messages
+
 
 
 
@@ -576,7 +577,7 @@ while loop == True:
     else:
         (queuedOrders, queuedOrderSignatures, timeDiff, newExpiry) = adjustAndQueue(underlying, maturity, expiryLength, orders)
 
-        orders = combineAndPlace(queuedOrders,queuedOrderSignatures, timeDiff, nexExpiry)
+        orders = combineAndPlace(queuedOrders,queuedOrderSignatures, timeDiff, newExpiry)
 
     initializor += 1
     compoundRate = underlying_compound_rate(underlying)
