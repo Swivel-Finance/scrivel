@@ -337,7 +337,8 @@ def adjustAndQueue(underlying, maturity, expiryLength, orders):
     # establish the impact that time should make
     timeDiff = maturity - time.time()
     timeModifier = expiryLength / timeDiff
-
+    newExpiry = float(time.time()) + expiryLength
+    
     verb = ''
     print('Compound\'s Rate Has Changed:')
     if compoundRateDiff > 0:
@@ -375,7 +376,6 @@ def adjustAndQueue(underlying, maturity, expiryLength, orders):
                 print("Retrying in 30s...")
                 time.sleep(30)
 
-        newExpiry = float(time.time()) + expiryLength
         principalDiff = float(orders[i]['meta']['principalAvailable']) - float(returnedOrder['meta']['principalAvailable'])
 
         # determine if the order has been filled, and if it is large enough to queue again
@@ -500,8 +500,6 @@ def adjustAndQueue(underlying, maturity, expiryLength, orders):
     time.sleep(.66)
     return (queuedOrders, queuedOrderSignatures, timeDiff, nexExpiry)
 
-
-
 def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength):
     print('Current Time:')
     print(datetime.datetime.utcfromtimestamp(int(time.time())).strftime('%Y-%m-%d %H:%M:%S\n'))
@@ -524,6 +522,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
 # TODO: add json storage for orders to allow user to recover position from crashes
 # TODO: add better exception handling and proper error messages
+
 
 
 # Market
