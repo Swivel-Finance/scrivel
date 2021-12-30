@@ -46,51 +46,68 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     # establish the mid-range rate
     midRate = (upperRate + lowerRate) / 2
 
-    print('Current Price:')
-    print(price)
+    print(cyan('Current Price:'))
+    print(white(price))
     price = float(price)
-    # use 95% of allocated capital
-    safeAmount = amount * .95 * 10**int(decimals)
+    # use safe allocation of allocated capital
+    safeAmount = amount * .999 * 10**int(decimals)
+    midTickAmount = safeAmount / (2 ** (numTicks+2))
+
+    time.sleep(.5)
     
     # annualize price to get rate
     timeDiff = maturity - time.time()
     timeModifier = (timeDiff / 31536000)
 
-    marketRate = price / timeModifier * 100
-    print('Market Rate:')
-    print(marketRate)
+    marketRate = truncate((price / timeModifier * 100),8)
+    print(yellow('Market Rate:'))
+    print(white(f'{marketRate}%'))
+    time.sleep(.5)
+    print(magenta('Your Mid Rate:'))
+    print(white(f'{midRate}%'))
     print(' ')
-    print('Your Mid Rate:')
-    print(midRate)
-    print(' ')
+    time.sleep(.5)
 
     # determine upper / lower ranges
     upperDiff = upperRate - midRate
     lowerDiff = midRate - lowerRate
-    print('Upper Diff:')
-    print(upperDiff)
-    print('Lower Diff:\n')
-    print(lowerDiff)
+    lowerPrice = truncate((lowerRate * timeModifier / 100),5)
+    upperPrice = truncate((upperRate * timeModifier / 100),5)
+    midPrice = truncate((midRate * timeModifier / 100), 5)
+
+    print(red('Upper (Sell nToken) Range:'))
+    print(white(f'Rates: {midRate}% - {upperRate}%'))
+    print(f'Prices: {midPrice} - {upperPrice}')
+    print(green('Lower (Buy nToken) Range:'))
+    print(white(f'Rates: {lowerRate}% - {midRate}%'))
+    print(f'Prices: {lowerPrice} - {midPrice}\n')
+    print(cyan('--------------------------'))
+    print(white(' '))
+
+    blankInput = input('Press Enter to continue...\n')
 
     if lowerDiff < 0 or upperDiff < 0:
         print('Error: Your rates are too high or low for a real range')
         exit(1)
 
-    # determine how spread each tick is
-    upperTickDiff = upperDiff / numTicks
-    lowerTickDiff = lowerDiff / numTicks
+    # determine how spread each tick is (-1 in order to have prices match at mid market price)
+    upperTickDiff = upperDiff / (numTicks)
+    lowerTickDiff = lowerDiff / (numTicks)
 
     # set initial order expiries
     expiry = float(time.time()) + expiryLength
 
-    for i in range(numTicks):
+    for i in range(numTicks+1):
         # determine specific tick's rate and price
-        tickRate = midRate + (upperTickDiff * (i+1))
+        tickRate = midRate + (upperTickDiff * (i))
         tickPrice = tickRate * timeModifier / 100
 
         exponent = numTicks-i
         # determine order size (martingale weighted)
-        tickAmount = safeAmount / (2 ** exponent)
+        if i == 0:
+            tickAmount = midTickAmount
+        else:
+            tickAmount = safeAmount / (2 ** (exponent+1))
 
         # set specific order sizes
         principal = tickAmount
@@ -105,7 +122,16 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         orderResponse = limit_order(stringify(tickOrder), signature, network)
         # store order and key
         orderKey = tickOrder['key'].hex()
-        apiOrder = order(orderKey, network)
+
+        apiSuccess = False
+        while apiSuccess == False:
+            try:
+                apiOrder = order(orderKey, network)
+                apiSuccess = True
+            except:
+                print("Error: Failed to retrieve order from Swivel API")
+                print("Retrying in 30s...")
+                time.sleep(30)
 
         orders.append(apiOrder)
 
@@ -116,20 +142,20 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         principalString = str(principal/10**decimals)
         print(f'Order Amount: {principalString} nTokens')
         print(f'Order Response: {orderResponse}\n')
+        time.sleep(.25)
 
-
-    for i in range(numTicks):
-        tickRate = midRate - (lowerTickDiff * (i+1))
+    for i in range(numTicks+1):
+        tickRate = midRate - (lowerTickDiff * (i))
         tickPrice = tickRate * timeModifier / 100
 
         exponent = numTicks-i
+        if i == 0:
+            tickAmount = midTickAmount
+        else:
+            tickAmount = safeAmount / (2 ** (exponent+1))
 
-        lowerSafeAmount = safeAmount * price
-
-        amount = lowerSafeAmount / (2 ** exponent)
-
-        principal = amount / tickPrice
-        premium = amount
+        principal = tickAmount 
+        premium = tickAmount * tickPrice
 
         tickOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(principal), premium=int(premium), expiry=int(expiry))
         tickOrderPrice = premium/principal
@@ -139,7 +165,16 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         orderResponse = limit_order(stringify(tickOrder), signature, network)
         # store order and key
         orderKey = tickOrder['key'].hex()
-        apiOrder = order(orderKey, network)
+
+        apiSuccess = False
+        while apiSuccess == False:
+            try:
+                apiOrder = order(orderKey, network)
+                apiSuccess = True
+            except:
+                print("Error: Failed to retrieve order from Swivel API")
+                print("Retrying in 30s...")
+                time.sleep(30)
         orders.append(apiOrder)
 
         print(green('Buy Order #'+str(i+1)))
@@ -149,7 +184,7 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
         principalString = str(principal/10**decimals)
         print(f'Order Amount: {principalString} nTokens')
         print(f'Order Response: {orderResponse}\n')
-
+        time.sleep(.25)
 
 def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength):
     print('Current Time:')
@@ -162,35 +197,60 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
         initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
     else:
         # store new compound rate and establish difference
-        newCompoundRate = underlying_compound_rate(underlying)
+
+        apiSuccess = False
+        while apiSuccess == False:
+            try:
+                newCompoundRate = underlying_compound_rate(underlying)
+                apiSuccess = True
+            except Exception as e:
+                print('Error: Could not connect to Compound API')
+                print('Retrying in 30s...')
+                time.sleep(30)
+
         compoundRateDiff = truncate(((newCompoundRate - compoundRate) / compoundRate), 8)
 
         # establish the impact that time should make
         timeDiff = maturity - time.time()
         timeModifier = expiryLength / timeDiff
 
-        print('Compound Rate Has Changed:')
-        print(str(compoundRateDiff*100)+'%')
-
         verb = ''
-
+        print('Compound\'s Rate Has Changed:')
         if compoundRateDiff > 0:
+            print(green(str(compoundRateDiff*100)+'%'))
             verb = 'increased'
-        elif compoundRateDiff < 0:
+            print(white('This change has ') + green(verb) + white('nToken prices:'))
+            print(green(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%')+ white(' based on your lean rate \n'))
+        if compoundRateDiff < 0:
+            print(red(str(compoundRateDiff*100)+'%'))
             verb = 'decreased'
+            print(white('This change has ') + red(verb) + white('nToken prices:'))
+            print(red(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%')+ white(' based on your lean rate \n'))
+        if compoundRateDiff == 0:
+            print(yellow(str(compoundRateDiff*100)+'%'))
+            print(white('This ') + yellow(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%') + white(' change does') + yellow(' not ') + white('impact nToken prices.\n'))
 
-        print('This change has ' + verb + 'nToken prices:')
-        print(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%'+ ' based on your lean rate \n')
+        
+        print(str(expiryLength)+' seconds have passed since the last quote refresh.')
+        print('This has' + red(' reduced ') + white('nToken prices:'))
+        print(cyan(str(timeModifier*100)+'%\n'))
 
-        print(str(expiryLength)+' have passed since the last quote refresh.')
-        print('This has reduced nToken prices:')
-        print(str(timeModifier*100)+'%\n')
+        time.sleep(5)
 
         # For every order in the provided range, check if it has been filled at all. If it has, place a reversed order at the same price (similar to uniswap v3)
         for i in range (0, len(orders)):
             orderKey = orders[i]['order']['key']
 
-            returnedOrder = order(orderKey, network)
+            apiSuccess = False
+            while apiSuccess == False:
+                try:
+                    returnedOrder = order(orderKey, network)
+                    apiSuccess = True
+                except:
+                    print("Error: Failed to retrieve order from Swivel API")
+                    print("Retrying in 30s...")
+                    time.sleep(30)
+
             newExpiry = float(time.time()) + expiryLength
             principalDiff = float(orders[i]['meta']['principalAvailable']) - float(returnedOrder['meta']['principalAvailable'])
 
@@ -209,7 +269,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
                 orderType = orders[i]['order']['exit']
 
-                print(magenta('Reversing a Filled Order...'))
+                print(magenta('Reversing An Orders Filled Volume...'))
 
                 # determine order type and create the new order
                 if orderType == True:
@@ -234,7 +294,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 print(f'Order Key: {reversedOrder["key"].hex()}')
                 print(white(f'Order Price: {compoundAdjustedPrice}'))
                 principalString = str(principalDiff/10**decimals)
-                print(f'Order Amount: {principalString} nTokens')
+                print(f'Order Amount: {principalString} nTokens\n')
 
                 # if the order is completely filled (or 95% filled), ignore it, otherwise replace the remaining order volume
                 if float(returnedOrder['meta']['principalAvailable']) <= (float(orders[i]['order']['principal']) * .05):
@@ -252,7 +312,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     queuedOrderSignatures.append(signature)
 
                     # print order info
-                    print(cyan('Replacing Remaining order volume...'))
+                    print(cyan('Replacing An Orders Unfilled Volume...'))
                     if orderType == True:
                         print(red('Queued (' + typeString + ') Order:'))
                     else:
@@ -298,7 +358,8 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                 print(white(f'Order Price: {compoundAdjustedPrice}'))
                 principalString = str(duplicatePrincipal/10**decimals)
                 print(f'Order Amount: {principalString} nTokens\n')
-        
+            time.sleep(.66)
+
         # print queued orders
         print(magenta('Queued Orders:'))
         for i in range(len(queuedOrders)):
@@ -312,6 +373,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
             orderNum = i+1
             print(white(f'{orderNum}. Type: {orderType}   Order Key: {orderKey}   Order Price: {orderPrice}'))
         print('')
+        time.sleep(.66)
 
         usedOrderKeys = []
         # iterate through the orders
@@ -354,25 +416,40 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
                                 # set combined marker
                                 combined = True
-                           
+                                time.sleep(.66)     
+
                 # if the order was not combined with any others, place the order
                 if combined == False:
                     orderResponse = limit_order(stringify(baseOrder), baseOrderSignature, network)
                     orderKey = baseOrderKey
-                    apiOrder = order(orderKey, network)  
+                    
+                    apiSuccess = False
+                    while apiSuccess == False:
+                        try:
+                            apiOrder = order(orderKey, network)
+                            apiSuccess = True
+                        except:
+                            print("Error: Failed to retrieve order from Swivel API")
+                            print("Retrying in 30s...")
+                            time.sleep(30)
 
                     # establish order typestring + print order type
                     orderExit = apiOrder['order']['exit']
+
                     if orderExit == True:
                         typeString = "Sell"
                         print(red('Placed ' + typeString + ' Order:'))
                     else:
                         typeString = "Buy"
                         print(green('Placed ' + typeString + ' Order:'))
+                    
+                    orderPrice = float(apiOrder["meta"]["price"])
+                    orderRate = truncate((orderPrice * 31536000/timeDiff),6) * 100
 
                     # print order info
                     print(f'Order Key: {orderKey}')
-                    print(white(f'Order Price: {apiOrder["meta"]["price"]}'))
+                    print(white(f'Order Price: {orderPrice}'))
+                    print(f'Order Rate: {orderRate}%')
                     principalString = str(float(apiOrder["meta"]["principalAvailable"])/10**decimals)
                     print(f'Order Amount: {principalString} nTokens')
                     print(f'Order Response: {orderResponse}\n')
@@ -391,7 +468,16 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
                     combinedOrderPrice = float(combinedPremium) / float(combinedPrincipal)
                     combinedOrderKey = combinedOrder['key'].hex()
-                    apiOrder = order(combinedOrderKey, network)
+
+                    apiSuccess = False
+                    while apiSuccess == False:
+                        try:
+                            apiOrder = order(combinedOrderKey, network)
+                            apiSuccess = True
+                        except:
+                            print("Error: Failed to retrieve order from Swivel API")
+                            print("Retrying in 30s...")
+                            time.sleep(30)
 
                     # establish order typestring
                     orderExit = apiOrder['order']['exit']
@@ -400,11 +486,12 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
                     else:
                         typeString = "Buy"
 
-
+                    orderRate = truncate((combinedOrderPrice * 31536000/timeDiff),6) * 100
                     # print order info
                     print(cyan('Placed Combined ' + typeString + ' Order:'))
                     print(f'Order Key: {combinedOrderKey}')
                     print(white(f'Order Price: {combinedOrderPrice}'))
+                    print(f'Order Rate: {orderRate}%')
                     principalString = str(combinedPrincipal/10**decimals)
                     print(f'Order Amount: {principalString} nTokens')
                     print(f'Order Response: {orderResponse}\n')
@@ -414,7 +501,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
                     # append the placed order to the list
                     newOrders.append(apiOrder)
-
+            time.sleep(.66)
         return (newOrders)
 
 
@@ -429,11 +516,11 @@ networkString = "rinkeby"
 
 # Position
 amount = float(10000) # The amount of nTokens to use market-making
-upperRate = float(9) # The highest rate at which to quote 
-lowerRate = float(6.75) # The lowest rate at which to quote 
-numTicks = int(3) # The number of liquidity ticks to split your amount into
-expiryLength = float(300) # How often orders should be refreshed (in seconds) 
+upperRate = float(12) # The highest rate at which to quote 
+lowerRate = float(8.5) # The lowest rate at which to quote 
+numTicks = int(3) # The number of liquidity ticks to split your amount into (Per side + 1 at market price)
 compoundRateLean = float(1) # How much your quote should change when Compound’s rate varies (e.g. 1 = 1:1 change in price) 
+expiryLength = float(300) # How often orders should be refreshed (in seconds) 
 
 PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
 provider = Web3.HTTPProvider("<YOUR_PROVIDER_KEY>")
@@ -463,5 +550,14 @@ while loop == True:
         print(len(orders))
     initializor += 1
     compoundRate = underlying_compound_rate(underlying)
-    time.sleep(expiryLength)
+
+    countdownRuns = math.floor(expiryLength/30)
+    printsRemaining = countdownRuns
+    # print time remaining for each countdown run
+    for i in range (0, countdownRuns):
+        timeRemaining = printsRemaining * 30
+        printsRemaining = printsRemaining - 1
+        print(cyan(f'{timeRemaining} Seconds Until Orders Are Refreshed...'))
+        print(white(' '))
+        time.sleep(30)
 stop()
