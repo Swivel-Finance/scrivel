@@ -344,12 +344,12 @@ def adjustAndQueue(underlying, maturity, expiryLength, orders):
     if compoundRateDiff > 0:
         print(green(str(compoundRateDiff*100)+'%'))
         verb = 'increased'
-        print(white('This change has ') + green(verb) + white('nToken prices:'))
+        print(white('This change has ') + green(verb) + white(' nToken prices:'))
         print(green(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%')+ white(' based on your lean rate \n'))
     if compoundRateDiff < 0:
         print(red(str(compoundRateDiff*100)+'%'))
         verb = 'decreased'
-        print(white('This change has ') + red(verb) + white('nToken prices:'))
+        print(white('This change has ') + red(verb) + white(' nToken prices:'))
         print(red(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%')+ white(' based on your lean rate \n'))
     if compoundRateDiff == 0:
         print(yellow(str(compoundRateDiff*100)+'%'))
@@ -522,7 +522,6 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
 # TODO: add json storage for orders to allow user to recover position from crashes
 # TODO: add better exception handling and proper error messages
-
 
 
 
