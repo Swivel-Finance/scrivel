@@ -175,7 +175,6 @@ def initialRun(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
                 print("Error: Failed to retrieve order from Swivel API")
                 print("Retrying in 30s...")
                 time.sleep(30)
-
         orders.append(apiOrder)
 
         print(green('Buy Order #'+str(i+1)))
@@ -204,7 +203,7 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
             try:
                 newCompoundRate = underlying_compound_rate(underlying)
                 apiSuccess = True
-            except ConnectionError as e:
+            except Exception as e:
                 print('Error: Could not connect to Compound API')
                 print('Retrying in 30s...')
                 time.sleep(30)
@@ -220,16 +219,16 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
         if compoundRateDiff > 0:
             print(green(str(compoundRateDiff*100)+'%'))
             verb = 'increased'
-            print('This change has ' + green(verb) + white('nToken prices:'))
+            print(white('This change has ') + green(verb) + white('nToken prices:'))
             print(green(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%')+ white(' based on your lean rate \n'))
         if compoundRateDiff < 0:
             print(red(str(compoundRateDiff*100)+'%'))
             verb = 'decreased'
-            print('This change has ' + red(verb) + white('nToken prices:'))
+            print(white('This change has ') + red(verb) + white('nToken prices:'))
             print(red(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%')+ white(' based on your lean rate \n'))
         if compoundRateDiff == 0:
             print(yellow(str(compoundRateDiff*100)+'%'))
-            print(white('This ') + yellow(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%') + white(' change does') + yellow('not') + white('impact nToken prices.\n'))
+            print(white('This ') + yellow(str(truncate((float(compoundRateDiff)*100*float(compoundRateLean)),6))+'%') + white(' change does') + yellow(' not ') + white('impact nToken prices.\n'))
 
         
         print(str(expiryLength)+' seconds have passed since the last quote refresh.')
@@ -508,8 +507,6 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 
 # TODO: add json storage for orders to allow user to recover position from crashes
 # TODO: add exception handling and proper error messages
-
-
 
 # Market
 underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa" # The underlying token address
