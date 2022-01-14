@@ -61,6 +61,18 @@ def invalidate_order(u, m, n):
         resp = requests.delete(route, params=params)
         return resp.status_code, resp.reason
 
+def orderbook(u, m, d, n):
+    """Given an underlying:maturity market pair, fetch the current orderbook"""
+    if n == 4:
+        params = new_params(underlying=u, maturity=m, depth=d)
+        resp = requests.get(swivel_api_route.format('orderbook'), params=params)
+        return resp.json()
+    if n == 42:
+        params = new_params(underlying=u, maturity=m, depth=d)
+        resp = requests.get(kovan_api_route.format('orderbook'), params=params)
+        return resp.json()
+        
+
 def markets(n, status=None):
     """Fetch all markets or only active (non-matured) from the Swivel API"""
     if n == 4:
@@ -89,17 +101,6 @@ def last_trade(u, m, n):
         params = new_params(underlying=u, maturity=m, depth=1)
         resp = requests.get(kovan_api_route.format('fills'), params=params)
         return resp.json()[0]
-
-def orderbook(u, m, n):
-    """Given an underlying:maturity market pair, fetch the most recent fill activity"""
-    if n == 4:
-        params = new_params(underlying=u, maturity=m, depth=25)
-        resp = requests.get(swivel_api_route.format('orderbook'), params=params)
-        return resp.json()
-    if n == 42:
-        params = new_params(underlying=u, maturity=m, depth=25)
-        resp = requests.get(kovan_api_route.format('orderbook'), params=params)
-        return resp.json()
 
 def orders(u, m, a, n, status=None):
     """Given a market return a list of the orders by the given address
