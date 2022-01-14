@@ -55,7 +55,6 @@ def initialPositionCreation(underlying, maturity, upperRate, lowerRate, amount, 
     safeAmount = amount * .999 * 10**int(decimals)
     midTickAmount = safeAmount / (2 ** (numTicks+2))
 
-    time.sleep(.5)
     
     # annualize price to get rate
     timeDiff = maturity - time.time()
@@ -64,11 +63,11 @@ def initialPositionCreation(underlying, maturity, upperRate, lowerRate, amount, 
     marketRate = truncate((price / timeModifier * 100),8)
     print(yellow('Market Rate:'))
     print(white(f'{marketRate}%'))
-    time.sleep(.5)
+
     print(magenta('Your Mid Rate:'))
     print(white(f'{midRate}%'))
     print(' ')
-    time.sleep(.5)
+
 
     # determine upper / lower ranges
     upperDiff = upperRate - midRate
@@ -144,7 +143,6 @@ def initialPositionCreation(underlying, maturity, upperRate, lowerRate, amount, 
         principalString = str(principal/10**decimals)
         print(f'Order Amount: {principalString} nTokens')
         print(f'Order Response: {orderResponse}\n')
-        time.sleep(.25)
 
     for i in range(numTicks+1):
         tickRate = midRate - (lowerTickDiff * (i))
@@ -186,7 +184,6 @@ def initialPositionCreation(underlying, maturity, upperRate, lowerRate, amount, 
         principalString = str(principal/10**decimals)
         print(f'Order Amount: {principalString} nTokens')
         print(f'Order Response: {orderResponse}\n')
-        time.sleep(.25)
 
 def combineAndPlace(queuedOrders, queuedOrderSignatures, timeDiff, newExpiry):
         usedOrderKeys = []
@@ -230,8 +227,7 @@ def combineAndPlace(queuedOrders, queuedOrderSignatures, timeDiff, newExpiry):
                                 print(white(f'Used Order: {usedOrderKey}\n'))
 
                                 # set combined marker
-                                combined = True
-                                time.sleep(.66)     
+                                combined = True 
 
                 # if the order was not combined with any others, place the order
                 if combined == False:
@@ -316,7 +312,6 @@ def combineAndPlace(queuedOrders, queuedOrderSignatures, timeDiff, newExpiry):
 
                     # append the placed order to the list
                     newOrders.append(apiOrder)
-            time.sleep(.66)
         return (newOrders)
 
 def adjustAndQueue(underlying, maturity, expiryLength, orders):
@@ -484,7 +479,6 @@ def adjustAndQueue(underlying, maturity, expiryLength, orders):
             print(white(f'Order Price: {compoundAdjustedPrice}'))
             principalString = str(duplicatePrincipal/10**decimals)
             print(f'Order Amount: {principalString} nTokens\n')
-        time.sleep(.66)
 
     # print queued orders
     print(magenta('Queued Orders:'))
@@ -499,7 +493,6 @@ def adjustAndQueue(underlying, maturity, expiryLength, orders):
         orderNum = i+1
         print(white(f'{orderNum}. Type: {orderType}   Order Key: {orderKey}   Order Price: {orderPrice}'))
     print('')
-    time.sleep(.66)
     return (queuedOrders, queuedOrderSignatures, timeDiff, newExpiry)
 
 def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength):
