@@ -522,11 +522,6 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 #-------------------------------------------------Position Setup-------------------------------------------------------- 
 #-----------------------------------------------------------------------------------------------------------------------
 
-# TODO: add json storage for orders to allow user to recover position from crashes
-# TODO: add better exception handling and proper error messages
-
-
-
 # Market
 underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa" # The underlying token address
 maturity = float(1669957199) # The Swivel market maturity in unix
