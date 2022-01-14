@@ -8,6 +8,8 @@ import math
 import time
 import datetime
 from web3 import Web3
+import json
+
 
 def truncate(number, digits) -> float:
     stepper = 10.0 ** digits
@@ -563,6 +565,7 @@ start()
 orders = []
 initializor = 0
 
+recoverString = input('Do you need to recover your orders from a crash? (y/n) : ').upper()
 loop = True
 while loop == True:
 
@@ -570,13 +573,31 @@ while loop == True:
     print(datetime.datetime.utcfromtimestamp(int(time.time())).strftime('%Y-%m-%d %H:%M:%S\n'))
     queuedOrders = []
     queuedOrderSignatures = []
+    if recoverString == 'N':
+        if initializor == 0:
+            initialPositionCreation(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
+        else:
+            (queuedOrders, queuedOrderSignatures, timeDiff, newExpiry) = adjustAndQueue(underlying, maturity, expiryLength, orders)
 
-    if initializor == 0:
-        initialPositionCreation(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
+            orders = combineAndPlace(queuedOrders,queuedOrderSignatures, timeDiff, newExpiry)
+            with open("v3_mm_storage/orders.json", "w", encoding="utf-8") as writeJsonfile:
+                json.dump(orders, writeJsonfile, indent=4,default=str) 
+
     else:
-        (queuedOrders, queuedOrderSignatures, timeDiff, newExpiry) = adjustAndQueue(underlying, maturity, expiryLength, orders)
+        try: 
+            orders = json.load(open('v3_mm_storage/orders.json'))
 
-        orders = combineAndPlace(queuedOrders,queuedOrderSignatures, timeDiff, newExpiry)
+            (queuedOrders, queuedOrderSignatures, timeDiff, newExpiry) = adjustAndQueue(underlying, maturity, expiryLength, orders)
+
+            orders = combineAndPlace(queuedOrders,queuedOrderSignatures, timeDiff, newExpiry)
+            with open("v3_mm_storage/orders.json", "w", encoding="utf-8") as writeJsonfile:
+                json.dump(orders, writeJsonfile, indent=4,default=str) 
+
+        except:
+            print('No orders to recover...')
+            input('Press enter to exit...')
+            exit(1)
+
 
     initializor += 1
     compoundRate = underlying_compound_rate(underlying)
