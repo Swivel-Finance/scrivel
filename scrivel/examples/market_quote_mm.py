@@ -24,6 +24,10 @@ from scrivel.helpers.colors import(
     white,
 )
 
+from scrivel.constants import(
+    NETWORK_ID,
+)
+
 def fetchPrice(underlying, maturity) -> float:
     trade = last_trade(underlying, maturity)
     return trade['price']
@@ -55,18 +59,18 @@ def simplestMarketMake(underlying, maturity, range, amount, expiryLength):
 
     vendor = W3(provider, PUBLIC_KEY)
 
-    upperOrderSignature = vendor.sign_order(upperOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
+    upperOrderSignature = vendor.sign_order(upperOrder, NETWORK_ID, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
 
-    lowerOrderSignature = vendor.sign_order(lowerOrder, 4, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
+    lowerOrderSignature = vendor.sign_order(lowerOrder, NETWORK_ID, "0x8e7bFA3106c0544b6468833c0EB41c350b50A5CA")
 
-    upperOrderResponse = limit_order(stringify(upperOrder), upperOrderSignature)
-    lowerOrderResponse = limit_order(stringify(lowerOrder), lowerOrderSignature)
+    upperOrderResponse = limit_order(stringify(upperOrder), upperOrderSignature, NETWORK_ID)
+    lowerOrderResponse = limit_order(stringify(lowerOrder), lowerOrderSignature, NETWORK_ID)
 
     upperOrderKey = upperOrder['key'].hex()
     lowerOrderKey = lowerOrder['key'].hex()
 
-    upperApiOrderPrice = order(upperOrderKey)['meta']['price']
-    lowerApiOrderPrice = order(lowerOrderKey)['meta']['price']
+    upperApiOrderPrice = order(upperOrderKey, NETWORK_ID)['meta']['price']
+    lowerApiOrderPrice = order(lowerOrderKey, NETWORK_ID)['meta']['price']
 
     print(blue('Successfully replaced positions.'))
     print(white(' '))
