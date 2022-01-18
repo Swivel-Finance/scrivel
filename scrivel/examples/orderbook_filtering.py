@@ -38,7 +38,6 @@ for i in orderbook:
     if i == "payingPremium":
         payingPremium = orderbook[i]
 
-
 keys = []
 
 for p in payingPremium:

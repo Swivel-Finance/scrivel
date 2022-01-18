@@ -22,6 +22,7 @@ from scrivel.constants import(
     HTTP_PROVIDER,
     PUB_KEY,
     SWIVEL_ADDRESS,
+    NETWORK_ID
 )
 
 """
@@ -43,7 +44,7 @@ start()
 print(magenta('Swivel contract at ') + white(swivel.address) + magenta(' successfully wrapped'))
 
 # get a specific order to fill / cancel
-# api_order = order('<specific order here>')
+# api_order = order('<specific order here>', NETWORK_ID)
 # orders from the api are "stringified", use the parse helper to prepare one for use with H.O.C methods
 # parsed = parse(api_order['order'])
 # the signature and other meta properties are available...
@@ -60,7 +61,7 @@ print(magenta('Swivel contract at ') + white(swivel.address) + magenta(' success
 
 # use the vendor.send convenience method to sign a transaction offline and broadcast it
 # first, however, include the appropriate tx_opts (from will be added for you by the vendor)
-# tx_opts = { 'chainId': 4 }
+# tx_opts = { 'chainId': NETWORK_ID }
 
 # all of swivel's H.O.C methods return a tuple that consists of (web3_transactable, tx_options).
 # many helpers (call, transact, send etc..) expect this tuple as an argument. However, you will often

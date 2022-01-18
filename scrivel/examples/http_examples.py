@@ -24,6 +24,7 @@ from scrivel.constants import(
     DAI_MATURITY,
     HTTP_PROVIDER,
     SWIVEL_ADDRESS,
+    NETWORK_ID,
 )
 
 from scrivel.helpers.colors import(
@@ -36,13 +37,13 @@ from scrivel.helpers.colors import(
 start()
 
 # get all markets
-print(white('All Markets: ') + blue(str(markets())))
+print(white('All Markets: ') + blue(str(markets(NETWORK_ID))))
 
 # get only active markets
-print(white('Active Markets: ') + blue(str(markets(status='active'))))
+print(white('Active Markets: ') + blue(str(markets(NETWORK_ID, status='active'))))
 
 # we can look at the last recorded trade activity via
-trade = last_trade(DAI_UNDERLYING, DAI_MATURITY)
+trade = last_trade(DAI_UNDERLYING, DAI_MATURITY, NETWORK_ID)
 # note the parsed data is in a list...
 print(white('Last trade for specified market: ') + blue(str(trade)))
 
@@ -50,11 +51,11 @@ print(white('Last trade for specified market: ') + blue(str(trade)))
 print(white('Latest price (via last trade): ') + blue(trade['price']))
 
 # a user (pub_key) may view their active orders
-my_orders = orders(DAI_UNDERLYING, DAI_MATURITY, PUB_KEY)
+my_orders = orders(DAI_UNDERLYING, DAI_MATURITY, PUB_KEY, NETWORK_ID)
 print(white('Active Orders by maker: ') + blue(str(my_orders)))
 
 # use a specific order key to get that order via the order helper
-# api_order = order('<order key here>')
+# api_order = order('<order key here>', NETWORK_ID)
 
 # orders from the api are "stringified", use the parse helper to prepare one for use with H.O.C methods
 # parsed = parse(api_order['order'])
@@ -65,7 +66,7 @@ print(white('Active Orders by maker: ') + blue(str(my_orders)))
 
 # a user may view orders that are not active by specifiying a status (see helpers/http non_active_order_status)
 # NOTE: at present these will be included with active orders, this is slated to change in an upcoming API version...
-my_insolvent_orders = orders(DAI_UNDERLYING, DAI_MATURITY, PUB_KEY, status='insolvent')
+my_insolvent_orders = orders(DAI_UNDERLYING, DAI_MATURITY, PUB_KEY, NETWORK_ID, status='insolvent')
 print(white('Insolvent Orders by maker: ') + blue(str(my_insolvent_orders)))
 
 # placing a limit order
@@ -79,13 +80,13 @@ print(white('New Order Key: ') + blue(my_order_key))
 provider = Web3.HTTPProvider(HTTP_PROVIDER)
 vendor = W3(provider, PUB_KEY)
 
-sig = vendor.sign_order(my_order, 4, SWIVEL_ADDRESS)
+sig = vendor.sign_order(my_order, NETWORK_ID, SWIVEL_ADDRESS)
 print(white('New Order signature: ') + blue(sig))
 
 # we leave this commented out to prevent spamming the orderbook
 
 # NOTE: use the stringify helper to match what the api expects
-# status, reason = limit_order(stringify(my_order), sig) 
+# status, reason = limit_order(stringify(my_order), sig, NETWORK_ID) 
 # print(white('API Limit Order Response: ') + blue(str(status)) + white(', ') + blue(reason))
 
 stop()

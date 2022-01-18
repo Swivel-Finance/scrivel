@@ -15,6 +15,7 @@ from scrivel.constants import(
     DAI_MATURITY,
     HTTP_PROVIDER,
     SWIVEL_ADDRESS,
+    NETWORK_ID,
 )
 
 from scrivel.helpers.colors import(
@@ -49,7 +50,7 @@ print(white('A prefilled order: ') + cyan(str(my_other_order)))
 provider = Web3.HTTPProvider(HTTP_PROVIDER)
 vendor = W3(provider, PUB_KEY)
 # we'll use rinkeby chainId and the rinkeby deployed swivel contract as the verifying address
-sig = vendor.sign_order(my_other_order, 4, SWIVEL_ADDRESS)
+sig = vendor.sign_order(my_other_order, NETWORK_ID, SWIVEL_ADDRESS)
 print(white('An order signature: ') + cyan(sig))
 
 # NOTE see /orders/place_order for posting a signed order to the swivel api, and /orders/cancel_order for well, cancelling
