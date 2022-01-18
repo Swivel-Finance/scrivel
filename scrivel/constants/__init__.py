@@ -10,5 +10,8 @@ SWIVEL_ADDRESS = '<deployed Swivel Contract address here>'
 # an active market pair
 DAI_UNDERLYING = '<active DAI market underlying token address here>'
 DAI_MATURITY = 0 # <maturity timestamp (unix epoch in seconds) of the above DAI market here>
+
 # this is the vault address associated with the above market
 VAULT_ADDRESS = '<vault address of the above active market here>'
+
+NETWORK_ID = '<network id of the swivel deployment here>'

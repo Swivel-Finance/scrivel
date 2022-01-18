@@ -17,6 +17,9 @@ We suggest you create a virtual environment for this and every python project.
 This is a python project, i'm just going to assume you have a python available. If not, do that first.
 Scrivel expects at least a Python version of 3.7.3
 
+##### Py Versions
+Versions `3.7.x` to `3.9.x` should work as expected. There are issues with `3.10` and up (web3.py and other dependencies), thus, do not use those.
+
 #### Assure you have pip available
 `which pip`. Depending on your system it may be aliased with ...3 so, `which pip3`. If not present install it.
 
@@ -38,14 +41,6 @@ Now you can move to installing things...
 Clone the repo, cd into the rood dir, (activate your virtual env if you have not) then
 
     pip install -r requirements.txt
-
-### Before you run the examples
-Each of the files in `/scrivel/examples` needs its `shebang` modified to point to the python executable you created with virtualenv.
-For example if you followed the path above
-    
-    #!/home/<your_user_name>/python/scrivel/bin/python
-
-If not, just make it match wherever you put it.
 
 ### Private key
 If you are performing transactions via the Swivel.py Vendor a private key is expected to be available in the shell environment as `PRIVATE_KEY`.

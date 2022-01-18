@@ -38,12 +38,4 @@ for i in orderbook:
     if i == "payingPremium":
         payingPremium = orderbook[i]
 
-
-keys = []
-
-for p in payingPremium:
-    if float(p['meta']['price']) > .13:
-        keys.append(p['order']['key'])
-        print('curl -X DELETE -i -u <AUTH> https://api-dev.swivel.exchange/v2/orders/'+ p['order']['key'])
-
     
