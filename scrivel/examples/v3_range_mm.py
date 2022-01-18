@@ -8,22 +8,22 @@ import math
 import time
 import datetime
 from web3 import Web3
+import json
 
 def truncate(number, digits) -> float:
     stepper = 10.0 ** digits
     return math.trunc(stepper * number) / stepper
 
+from helpers.orders import new_order, stringify
 
-from scrivel.helpers.orders import new_order, stringify
-
-from scrivel.helpers.http import (
+from helpers.http import (
     last_trade,
     limit_order,
     order,
     underlying_compound_rate,
 )
 
-from scrivel.helpers.colors import(
+from helpers.colors import(
     start,
     stop,
     blue,
@@ -40,6 +40,11 @@ def fetchPrice(underlying, maturity, network) -> float:
     return trade['price']
 
 def initialPositionCreation(underlying, maturity, upperRate, lowerRate, amount, expiryLength):
+
+    initialOrders = []
+    numBuyOrders = 0
+    numSellOrders = 0
+
     # establish the "market price"
     price = fetchPrice(underlying, math.trunc(maturity), network)
 
@@ -53,8 +58,6 @@ def initialPositionCreation(underlying, maturity, upperRate, lowerRate, amount, 
     safeAmount = amount * .999 * 10**int(decimals)
     midTickAmount = safeAmount / (2 ** (numTicks+2))
 
-    time.sleep(.5)
-    
     # annualize price to get rate
     timeDiff = maturity - time.time()
     timeModifier = (timeDiff / 31536000)
@@ -62,11 +65,10 @@ def initialPositionCreation(underlying, maturity, upperRate, lowerRate, amount, 
     marketRate = truncate((price / timeModifier * 100),8)
     print(yellow('Market Rate:'))
     print(white(f'{marketRate}%'))
-    time.sleep(.5)
+
     print(magenta('Your Mid Rate:'))
     print(white(f'{midRate}%'))
     print(' ')
-    time.sleep(.5)
 
     # determine upper / lower ranges
     upperDiff = upperRate - midRate
@@ -97,27 +99,31 @@ def initialPositionCreation(underlying, maturity, upperRate, lowerRate, amount, 
     # set initial order expiries
     expiry = float(time.time()) + expiryLength
 
-    for i in range(numTicks+1):
+    for i in range(1,numTicks+1):
         # determine specific tick's rate and price
         tickRate = midRate + (upperTickDiff * (i))
         tickPrice = tickRate * timeModifier / 100
 
         exponent = numTicks-i
         # determine order size (martingale weighted)
-        if i == 0:
-            tickAmount = midTickAmount
-        else:
-            tickAmount = safeAmount / (2 ** (exponent+1))
+
+        tickAmount = safeAmount / (2 ** (exponent+1))
 
         # set specific order sizes
         principal = tickAmount
         premium = principal*tickPrice
-
-        # create, sign, and place the order
-        tickOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=True, principal=int(principal), premium=int(premium), expiry=int(expiry))
         tickOrderPrice = premium/principal
 
-        signature = vendor.sign_order(tickOrder, network, swivelAddress)
+        if tickOrderPrice < price:
+            # create, sign, and place the order
+            tickOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(principal), premium=int(premium), expiry=int(expiry))
+            signature = vendor.sign_order(tickOrder, network, swivelAddress)
+            numBuyOrders += 1
+        else:
+            # create, sign, and place the order
+            tickOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=True, principal=int(principal), premium=int(premium), expiry=int(expiry))
+            signature = vendor.sign_order(tickOrder, network, swivelAddress)
+            numSellOrders += 1
 
         orderResponse = limit_order(stringify(tickOrder), signature, network)
         # store order and key
@@ -133,34 +139,42 @@ def initialPositionCreation(underlying, maturity, upperRate, lowerRate, amount, 
                 print("Retrying in 30s...")
                 time.sleep(30)
 
-        orders.append(apiOrder)
+        initialOrders.append(apiOrder)
 
-        print(red('Sell Order #'+str(i+1)))
+
+        if tickOrderPrice < price:
+            print(green('Buy Order #'+str(numBuyOrders)))
+        else:
+            print(red('Sell Order #'+str(numSellOrders)))
         print(white(f'Order Key: {orderKey}'))
         print(f'Order Price: {tickOrderPrice}')
         print(f'Order Rate: {tickRate}')
         principalString = str(principal/10**decimals)
         print(f'Order Amount: {principalString} nTokens')
         print(f'Order Response: {orderResponse}\n')
-        time.sleep(.25)
 
-    for i in range(numTicks+1):
+    for i in range(1,numTicks+1):
         tickRate = midRate - (lowerTickDiff * (i))
         tickPrice = tickRate * timeModifier / 100
 
         exponent = numTicks-i
-        if i == 0:
-            tickAmount = midTickAmount
-        else:
-            tickAmount = safeAmount / (2 ** (exponent+1))
+
+        tickAmount = safeAmount / (2 ** (exponent+1))
 
         principal = tickAmount 
         premium = tickAmount * tickPrice
-
-        tickOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(principal), premium=int(premium), expiry=int(expiry))
         tickOrderPrice = premium/principal
 
-        signature = vendor.sign_order(tickOrder, network, swivelAddress)
+        if tickOrderPrice < price:
+            # create, sign, and place the order
+            tickOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(principal), premium=int(premium), expiry=int(expiry))
+            signature = vendor.sign_order(tickOrder, network, swivelAddress)
+            numBuyOrders += 1
+        else:
+            # create, sign, and place the order
+            tickOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=True, principal=int(principal), premium=int(premium), expiry=int(expiry))
+            signature = vendor.sign_order(tickOrder, network, swivelAddress)
+            numSellOrders += 1
 
         orderResponse = limit_order(stringify(tickOrder), signature, network)
         # store order and key
@@ -175,16 +189,57 @@ def initialPositionCreation(underlying, maturity, upperRate, lowerRate, amount, 
                 print("Error: Failed to retrieve order from Swivel API")
                 print("Retrying in 30s...")
                 time.sleep(30)
-        orders.append(apiOrder)
+        initialOrders.append(apiOrder)
 
-        print(green('Buy Order #'+str(i+1)))
+        if tickOrderPrice < price:
+            print(green('Buy Order #'+str(numBuyOrders)))
+        else:
+            print(red('Sell Order #'+str(numSellOrders)))
         print(white(f'Order Key: {orderKey}'))
         print(f'Order Price: {tickOrderPrice}')
         print(f'Order Rate: {tickRate}')
         principalString = str(principal/10**decimals)
         print(f'Order Amount: {principalString} nTokens')
         print(f'Order Response: {orderResponse}\n')
-        time.sleep(.25)
+
+    # Place the middle tick's order
+    midTickAmount = midTickAmount * 2
+    principal = midTickAmount
+    premium = principal * midPrice
+
+    # create, sign, and place the order
+    if midPrice > price:
+        tickOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=True, principal=int(principal), premium=int(premium), expiry=int(expiry))
+        signature = vendor.sign_order(tickOrder, network, swivelAddress)
+    else:
+        tickOrder = new_order(PUBLIC_KEY, underlying=underlying, maturity=int(maturity), vault=True, exit=False, principal=int(principal), premium=int(premium), expiry=int(expiry))
+        signature = vendor.sign_order(tickOrder, network, swivelAddress) 
+
+    orderResponse = limit_order(stringify(tickOrder), signature, network)
+    orderKey = tickOrder['key'].hex()
+
+    apiSuccess = False
+    while apiSuccess == False:
+        try:
+            apiOrder = order(orderKey, network)
+            apiSuccess = True
+        except:
+            print("Error: Failed to retrieve order from Swivel API")
+            print("Retrying in 30s...")
+            time.sleep(30)
+    initialOrders.append(apiOrder)
+    if midPrice > price:
+        print(red('Mid-Range Sell Order'))
+    else:
+        print(green('Mid-Range Buy Order'))
+    print(white(f'Order Key: {orderKey}'))
+    print(f'Order Price: {midPrice}')
+    print(f'Order Rate: {midRate}')
+    principalString = str(principal/10**decimals)
+    print(f'Order Amount: {principalString} nTokens')
+    print(f'Order Response: {orderResponse}\n')
+
+    return (initialOrders)
 
 def combineAndPlace(queuedOrders, queuedOrderSignatures, timeDiff, newExpiry):
         usedOrderKeys = []
@@ -228,8 +283,7 @@ def combineAndPlace(queuedOrders, queuedOrderSignatures, timeDiff, newExpiry):
                                 print(white(f'Used Order: {usedOrderKey}\n'))
 
                                 # set combined marker
-                                combined = True
-                                time.sleep(.66)     
+                                combined = True 
 
                 # if the order was not combined with any others, place the order
                 if combined == False:
@@ -314,7 +368,6 @@ def combineAndPlace(queuedOrders, queuedOrderSignatures, timeDiff, newExpiry):
 
                     # append the placed order to the list
                     newOrders.append(apiOrder)
-            time.sleep(.66)
         return (newOrders)
 
 def adjustAndQueue(underlying, maturity, expiryLength, orders):
@@ -357,7 +410,7 @@ def adjustAndQueue(underlying, maturity, expiryLength, orders):
 
     
     print(str(expiryLength)+' seconds have passed since the last quote refresh.')
-    print('This has' + red(' reduced ') + white('nToken prices:'))
+    print('This has' + red(' decreased ') + white('nToken prices:'))
     print(cyan(str(timeModifier*100)+'%\n'))
 
     time.sleep(5)
@@ -482,7 +535,6 @@ def adjustAndQueue(underlying, maturity, expiryLength, orders):
             print(white(f'Order Price: {compoundAdjustedPrice}'))
             principalString = str(duplicatePrincipal/10**decimals)
             print(f'Order Amount: {principalString} nTokens\n')
-        time.sleep(.66)
 
     # print queued orders
     print(magenta('Queued Orders:'))
@@ -497,7 +549,6 @@ def adjustAndQueue(underlying, maturity, expiryLength, orders):
         orderNum = i+1
         print(white(f'{orderNum}. Type: {orderType}   Order Key: {orderKey}   Order Price: {orderPrice}'))
     print('')
-    time.sleep(.66)
     return (queuedOrders, queuedOrderSignatures, timeDiff, newExpiry)
 
 def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount, expiryLength):
@@ -520,11 +571,6 @@ def rangeMultiTickMarketMake(underlying, maturity, upperRate, lowerRate, amount,
 #-------------------------------------------------Position Setup-------------------------------------------------------- 
 #-----------------------------------------------------------------------------------------------------------------------
 
-# TODO: add json storage for orders to allow user to recover position from crashes
-# TODO: add better exception handling and proper error messages
-
-
-
 # Market
 underlying = "0x5592EC0cfb4dbc12D3aB100b257153436a1f0FEa" # The underlying token address
 maturity = float(1669957199) # The Swivel market maturity in unix
@@ -537,7 +583,7 @@ upperRate = float(13) # The highest rate at which to quote
 lowerRate = float(9.5) # The lowest rate at which to quote 
 numTicks = int(3) # The number of liquidity ticks to split your amount into (Per side + 1 at market price)
 compoundRateLean = float(1) # How much your quote should change when Compound’s rate varies (e.g. 1 = 1:1 change in price) 
-expiryLength = float(450) # How often orders should be refreshed (in seconds) 
+expiryLength = float(60) # How often orders should be refreshed (in seconds) 
 
 PUBLIC_KEY = "0x3f60008Dfd0EfC03F476D9B489D6C5B13B3eBF2C"
 provider = Web3.HTTPProvider("<YOUR_PROVIDER_KEY>")
@@ -563,6 +609,7 @@ start()
 orders = []
 initializor = 0
 
+recoverString = input('Do you need to recover your orders from a crash? (y/n) : ').upper()
 loop = True
 while loop == True:
 
@@ -570,17 +617,35 @@ while loop == True:
     print(datetime.datetime.utcfromtimestamp(int(time.time())).strftime('%Y-%m-%d %H:%M:%S\n'))
     queuedOrders = []
     queuedOrderSignatures = []
+    if recoverString == 'N':
+        if initializor == 0:
+            (orders) = initialPositionCreation(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
 
-    if initializor == 0:
-        initialPositionCreation(underlying, maturity, upperRate, lowerRate, amount, expiryLength)
+        else:
+            (queuedOrders, queuedOrderSignatures, timeDiff, newExpiry) = adjustAndQueue(underlying, maturity, expiryLength, orders)
+
+            orders = combineAndPlace(queuedOrders,queuedOrderSignatures, timeDiff, newExpiry)
+
+        with open("orders/orders.json", "w", encoding="utf-8") as writeJsonfile:
+            json.dump(orders, writeJsonfile, indent=4,default=str) 
+
     else:
-        (queuedOrders, queuedOrderSignatures, timeDiff, newExpiry) = adjustAndQueue(underlying, maturity, expiryLength, orders)
+        try: 
+            orders = json.load(open('orders/orders.json'))
 
-        orders = combineAndPlace(queuedOrders,queuedOrderSignatures, timeDiff, newExpiry)
+            (queuedOrders, queuedOrderSignatures, timeDiff, newExpiry) = adjustAndQueue(underlying, maturity, expiryLength, orders)
+
+            orders = combineAndPlace(queuedOrders,queuedOrderSignatures, timeDiff, newExpiry)
+            with open("orders/orders.json", "w", encoding="utf-8") as writeJsonfile:
+                json.dump(orders, writeJsonfile, indent=4,default=str) 
+
+        except:
+            print('No orders to recover...')
+            input('Press enter to exit...')
+            exit(1)
 
     initializor += 1
     compoundRate = underlying_compound_rate(underlying)
-
 
     # sleep the expiry length
     countdownRuns = math.floor(expiryLength/30)
