@@ -1,5 +1,3 @@
-#!<your_path_here>/bin/python
-
 # this is not a package, so we need to insert scrivel into the path
 import os, sys
 from os.path import dirname, join, abspath
